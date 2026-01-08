@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+
+.temp/
+*Zone.Identifier
+
+.idea/
+.vscode/
+*.log
+.env*
+.DS_Store
