@@ -1,0 +1,186 @@
+// The sphere origin and the headline share one 0×0 point in the middle of
+// the viewport: #world sits at 50%/50%, every card and the title are
+// positioned from its top-left corner.
+
+#scrolltrack {
+  height: 116vh;
+  pointer-events: none;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  perspective: var(--persp);
+  perspective-origin: 50% 50%;
+  touch-action: none;
+  transition:
+    opacity 0.6s ease,
+    filter 0.6s ease;
+
+  @media (pointer: coarse) {
+    touch-action: pan-y;
+  }
+
+  .gridview & {
+    opacity: 0;
+    filter: blur(14px);
+    pointer-events: none;
+  }
+
+  &__world,
+  &__orb {
+    position: absolute;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+  }
+
+  &__world {
+    top: 50%;
+    left: 50%;
+    will-change: transform;
+  }
+
+  &__orb {
+    top: 0;
+    left: 0;
+  }
+}
+
+.headline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--headline-width);
+  margin: 0 0 0 calc(var(--headline-width) / -2);
+  font-size: clamp(25px, 3.7vw, 55px);
+  line-height: 1.06;
+  letter-spacing: -0.005em;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 2px 34px rgb(0 0 0 / 55%);
+  pointer-events: none;
+  user-select: none;
+
+  &__inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transform: translateY(-50%);
+
+    > span {
+      display: inline-block;
+      opacity: 0;
+      filter: blur(7px);
+      transform: translateY(0.42em);
+
+      .revealed & {
+        opacity: 1;
+        filter: blur(0);
+        transform: none;
+        transition:
+          opacity 1.05s ease,
+          transform 1.15s var(--ease),
+          filter 1.05s ease;
+        transition-delay: calc(0.9s + var(--i) * 0.085s);
+      }
+    }
+  }
+
+  @include mobile {
+    font-size: clamp(22px, 6.4vw, 34px);
+  }
+
+  @media (max-width: 640px) {
+    --headline-width: min(84vw, 360px);
+  }
+
+  @media (max-width: 380px) {
+    --headline-width: min(88vw, 320px);
+  }
+
+  @media (max-height: 520px) and (orientation: landscape) {
+    font-size: clamp(18px, 4.8vh, 28px);
+  }
+}
+
+.card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--cw);
+  height: calc(var(--cw) / 1.5);
+  margin-top: calc(var(--cw) / -3);
+  margin-left: calc(var(--cw) / -2);
+  cursor: pointer;
+
+  &--tall {
+    height: calc(var(--cw) * 1.25);
+    margin-top: calc(var(--cw) * -0.625);
+  }
+
+  figure {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--border-radius-s);
+    background-color: #0a0a0a;
+    transition: transform 0.5s ease;
+
+    // Depth is a flat black wash, cheaper than a CSS filter per card.
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgb(0 0 0 / var(--d, 0));
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%);
+      pointer-events: none;
+    }
+  }
+
+  @include hover(false) {
+    figure {
+      transform: scale(1.045);
+    }
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+
+    &.in {
+      opacity: 1;
+    }
+
+    .revealed & {
+      transition: opacity 0.8s ease-out;
+    }
+  }
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  background: radial-gradient(
+    ellipse 88% 92% at 50% 50%,
+    transparent 48%,
+    rgb(0 0 0 / 26%) 80%,
+    rgb(0 0 0 / 72%) 100%
+  );
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+
+  .gridview &,
+  .lit & {
+    opacity: 0;
+  }
+}
