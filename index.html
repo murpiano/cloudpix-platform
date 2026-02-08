@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>CloudPix — Every Frame Finds Its Orbit</title>
+    <meta
+      name="description"
+      content="CloudPix is an open photo archive on a 3D sphere. Drag it, lean in, open a frame, or publish your own with in-browser effects."
+    />
+    <meta name="author" content="Bogdan Trotsenko" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap"
+    />
+  </head>
+
+  <body class="locked">
+    <div id="splash" class="splash" role="status" aria-live="polite">
+      <p class="splash__mark">Cloud<em>Pix</em></p>
+      <div class="splash__bar"><s id="splashBar"></s></div>
+      <p class="splash__tag" id="splashTag">Open Archive 2026</p>
+      <div class="splash__fail" id="splashFail" hidden>
+        <p>The archive is offline right now.</p>
+        <button type="button" class="pill" id="splashRetry">Try again</button>
+      </div>
+    </div>
+
+    <div id="scrolltrack" aria-hidden="true"></div>
+
+    <main>
+      <div id="stage" class="stage">
+        <div id="world" class="stage__world">
+          <div id="orb" class="stage__orb"></div>
+          <h1 id="headline" class="headline">
+            <span class="headline__inner"
+              ><span style="--i: 0">Every</span> <span style="--i: 1">Frame</span>
+              <span style="--i: 2">Finds</span> <span style="--i: 3">Its</span>
+              <span style="--i: 4">Orbit</span></span
+            >
+          </h1>
+        </div>
+      </div>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <section id="archive" class="archive" aria-labelledby="archiveTitle" inert>
+        <header class="archive__head">
+          <h2 id="archiveTitle" class="archive__title">
+            The Archive <span id="archiveCount" class="archive__count"></span>
+          </h2>
+          <div
+            class="archive__sort"
+            id="archiveSort"
+            role="radiogroup"
+            aria-label="Sort frames"
+          ></div>
+        </header>
+        <div id="archiveRows" class="archive__rows"></div>
+      </section>
+    </main>
+
+    <header class="topbar chrome">
+      <a class="wordmark" href="./" aria-label="CloudPix home">Cloud<em>Pix</em></a>
+      <div class="topbar__actions">
+        <button type="button" class="topbar__upload" id="uploadBtn">
+          <span data-icon="plus"></span><span>Upload</span>
+        </button>
+        <button
+          type="button"
+          class="menu-btn"
+          id="menuBtn"
+          aria-expanded="false"
+          aria-controls="menu"
+          aria-label="Open menu"
+        >
+          <span class="menu-btn__label">Menu</span>
+          <span class="menu-btn__bars"><i></i><i></i></span>
+        </button>
+      </div>
+    </header>
+
+    <aside class="about chrome" aria-label="About CloudPix">
+      <div class="about__who">
+        <span class="about__mark" data-icon="mark"></span>
+        <b>CloudPix</b>
+      </div>
+      <p>
+        An open photo archive held in orbit. Drag to turn it, scroll to lean in, and publish a frame
+        of your own — it joins the sphere for everyone.
+      </p>
+    </aside>
+
+    <p class="colophon chrome">Built by murpiano · 2026</p>
+
+    <button
+      type="button"
+      class="gridbtn chrome"
+      id="gridBtn"
+      aria-label="Toggle grid view"
+      aria-pressed="false"
+    >
+      <b></b><b></b><b></b><b></b>
+    </button>
+
+    <p class="cue chrome" aria-hidden="true"><s></s>Drag to rotate</p>
+
+    <div id="menu" class="menu" aria-hidden="true" inert>
+      <nav class="menu__nav" aria-label="Main">
+        <a href="#archive" data-action="archive">The Archive</a>
+        <a href="#upload" data-action="upload">Upload a Frame</a>
+        <a href="https://github.com/murpiano/cloudpix-platform" target="_blank" rel="noopener"
+          >Source</a
+        >
+        <a href="https://t.me/murpiano" target="_blank" rel="noopener">Contact</a>
+      </nav>
+      <p class="menu__addr">
+        <a href="https://t.me/murpiano" target="_blank" rel="noopener">Telegram</a> ·
+        <a href="https://vk.com/murpiano" target="_blank" rel="noopener">VK</a> ·
+        <a href="https://github.com/murpiano" target="_blank" rel="noopener">GitHub</a><br />
+        Designed &amp; built by Bogdan Trotsenko — murpiano
+      </p>
+    </div>
+
+    <div
+      id="viewer"
+      class="viewer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="viewerTitle"
+      inert
+    >
+      <div class="viewer__scrim" data-close></div>
+      <article class="viewer__plate" id="viewerPlate">
+        <div class="viewer__shot">
+          <img id="viewerImg" alt="" />
+          <button type="button" class="viewer__close" data-close>Close</button>
+        </div>
+        <div class="viewer__meta">
+          <div class="viewer__about">
+            <h2 id="viewerTitle" class="viewer__title"></h2>
+            <p class="viewer__stats" id="viewerStats"></p>
+            <div class="viewer__actions">
+              <button type="button" class="like" id="viewerLike" aria-pressed="false">
+                <span data-icon="heart"></span><span class="like__count" id="viewerLikes"></span>
+              </button>
+              <div class="viewer__nav">
+                <button type="button" class="icon-btn" id="viewerPrev" aria-label="Previous frame">
+                  <span data-icon="prev"></span>
+                </button>
+                <span id="viewerPos" class="viewer__pos"></span>
+                <button type="button" class="icon-btn" id="viewerNext" aria-label="Next frame">
+                  <span data-icon="next"></span>
+                </button>
+              </div>
+            </div>
+            <p class="viewer__caption" id="viewerCaption"></p>
+            <ul class="viewer__tags" id="viewerTags"></ul>
+          </div>
+          <section class="thread" aria-label="Comments">
+            <ul class="thread__list" id="threadList"></ul>
+            <p class="thread__empty" id="threadEmpty">No comments yet.</p>
+            <button type="button" class="thread__more" id="threadMore"></button>
+          </section>
+        </div>
+      </article>
+    </div>
+
+    <section id="studio" class="studio" aria-labelledby="studioTitle" aria-hidden="true" inert>
+      <form class="studio__form" id="studioForm" novalidate autocomplete="off">
+        <header class="studio__head">
+          <h2 id="studioTitle" class="studio__title">New <em>frame</em></h2>
+          <button type="button" class="pill" id="studioClose">Close</button>
+        </header>
+
+        <div class="studio__canvas">
+          <label class="drop-target" id="studioDrop" for="studioFile">
+            <span class="drop-target__icon" data-icon="frame"></span>
+            <span class="drop-target__title">Drop a frame here</span>
+            <span class="drop-target__hint"
+              >or <u>browse files</u> · JPG, PNG, WebP up to 15 MB</span
+            >
+          </label>
+          <input
+            class="visually-hidden"
+            type="file"
+            id="studioFile"
+            accept="image/jpeg,image/png,image/webp"
+          />
+          <div class="studio__preview" id="studioPreview" hidden>
+            <div class="studio__viewport" id="studioViewport">
+              <img id="studioImg" alt="Preview of the frame you are about to publish" />
+            </div>
+            <button type="button" class="studio__swap" id="studioSwap">Choose another file</button>
+          </div>
+        </div>
+
+        <div class="studio__panel">
+          <fieldset class="studio__group">
+            <legend>Look</legend>
+            <div class="looks" id="studioLooks" role="radiogroup" aria-label="Effect"></div>
+            <label class="range">
+              <span>Strength <output id="strengthOut">100</output></span>
+              <input type="range" id="studioStrength" min="0" max="100" value="100" />
+            </label>
+            <label class="range">
+              <span>Crop <output id="zoomOut">100%</output></span>
+              <input type="range" id="studioZoom" min="100" max="200" step="5" value="100" />
+            </label>
+          </fieldset>
+
+          <fieldset class="studio__group">
+            <legend>Tags</legend>
+            <div class="chips" id="studioChips">
+              <input
+                class="chips__input"
+                id="studioTagInput"
+                placeholder="#sea, #dusk…"
+                aria-describedby="tagHint"
+                enterkeyhint="done"
+              />
+            </div>
+            <p class="field-hint" id="tagHint" aria-live="polite">
+              Press Enter or Space to add. Up to 6 tags.
+            </p>
+          </fieldset>
+
+          <fieldset class="studio__group">
+            <legend>Caption</legend>
+            <textarea
+              class="caption"
+              id="studioCaption"
+              rows="3"
+              maxlength="300"
+              placeholder="What is going on in this frame?"
+              aria-describedby="captionCount"
+            ></textarea>
+            <p class="field-hint field-hint--end" id="captionCount">0 / 300</p>
+          </fieldset>
+
+          <div class="studio__submit">
+            <p class="studio__status" id="studioStatus" role="status" aria-live="polite"></p>
+            <button type="submit" class="pill pill--solid" id="studioSend" disabled>
+              <span data-icon="upload"></span><span id="studioSendLabel">Send to orbit</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <div class="dropzone" id="dropzone" aria-hidden="true">
+      <p>Release to upload</p>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div id="cursor" class="cursor" aria-hidden="true"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

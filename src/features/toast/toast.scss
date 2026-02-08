@@ -1,0 +1,29 @@
+.toast {
+  position: fixed;
+  bottom: calc(var(--pad) + var(--safe-bottom) + 56px);
+  left: 50%;
+  z-index: 260;
+  max-width: calc(100vw - var(--pad) * 2);
+  padding: 12px 20px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background-color: rgb(11 11 11 / 88%);
+  border: var(--border-width-s) solid var(--color-border-strong);
+  border-radius: var(--border-radius-pill);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  backdrop-filter: blur(8px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.45s var(--ease);
+
+  &.is-shown {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  &.is-error {
+    border-color: var(--color-negative);
+  }
+}

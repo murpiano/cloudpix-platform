@@ -1,0 +1,38 @@
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 300;
+  width: 19px;
+  height: 19px;
+  margin: -9.5px 0 0 -9.5px;
+  background-color: rgb(214 212 209 / 90%);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  mix-blend-mode: difference;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    width 0.35s ease,
+    height 0.35s ease,
+    margin 0.35s ease,
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    opacity 0.35s ease;
+
+  &.is-on {
+    opacity: 1;
+  }
+
+  &.wide {
+    width: 52px;
+    height: 52px;
+    margin: -26px 0 0 -26px;
+    background-color: rgb(244 242 239 / 14%);
+    border-color: rgb(244 242 239 / 75%);
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    display: none;
+  }
+}
