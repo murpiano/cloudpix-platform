@@ -48,16 +48,3 @@ export const orbitMetrics = (width: number, height: number): OrbitMetrics => {
     decodeMax: width <= 380 ? 420 : width <= 640 ? 520 : width <= 900 ? 640 : 760,
   };
 };
-
-/** Rotates a unit point by the camera pitch (sx) then yaw (sy); returns depth towards the viewer. */
-export const depthAfterRotation = (
-  point: SpherePoint,
-  pitchDeg: number,
-  yawDeg: number,
-): number => {
-  const pitch = pitchDeg / TO_DEG;
-  const yaw = yawDeg / TO_DEG;
-  // CSS space: y grows downwards, so the card sits at (x, -y, z).
-  const z1 = -point.y * Math.sin(pitch) + point.z * Math.cos(pitch);
-  return -point.x * Math.sin(yaw) + z1 * Math.cos(yaw);
-};

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { depthAfterRotation, fibonacciSphere, orbitMetrics } from './layout';
+import { fibonacciSphere, orbitMetrics } from './layout';
 
 describe('fibonacciSphere', () => {
   it('puts every point on the unit sphere', () => {
@@ -33,17 +33,5 @@ describe('orbitMetrics', () => {
 
   it('scales with the shorter axis on desktop', () => {
     expect(orbitMetrics(1440, 900).radius).toBeCloseTo(900 * 0.46);
-  });
-});
-
-describe('depthAfterRotation', () => {
-  const front = { x: 0, y: 0, z: 1, lat: 0, lon: 0 };
-
-  it('keeps a front-facing point in front without rotation', () => {
-    expect(depthAfterRotation(front, 0, 0)).toBeCloseTo(1);
-  });
-
-  it('sends it behind after half a turn', () => {
-    expect(depthAfterRotation(front, 0, 180)).toBeCloseTo(-1);
   });
 });

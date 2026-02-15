@@ -5,8 +5,10 @@ import type { DecodedImage } from '@/lib/decode';
 import { byId, h } from '@/lib/dom';
 import { frameLabel } from '@/lib/format';
 import { clamp } from '@/lib/math';
-import { depthAfterRotation, fibonacciSphere, orbitMetrics } from './layout';
+import { fibonacciSphere, orbitMetrics } from './layout';
 import type { OrbitMetrics, SpherePoint } from './layout';
+import { apply, multiply, orthonormalize, rotateX, rotateY, toCss } from './rotation';
+import type { Mat3 } from './rotation';
 
 export interface OrbitItem {
   photo: Photo;
@@ -28,7 +30,6 @@ interface OrbitOptions {
 
 const Camera = {
   TILT: -4,
-  PITCH_LIMIT: 32,
   DEG_PER_PX: 0.13,
   FRICTION: 0.94,
   REST: 0.002,
@@ -38,7 +39,6 @@ const Camera = {
 } as const;
 
 const RESIZE_THRESHOLD = 20;
-const TOUCH_DECIDE_PX = 10;
 
 interface CardState {
   element: HTMLElement;
@@ -56,13 +56,13 @@ interface PointerState {
   startY: number;
   lastX: number;
   lastY: number;
-  active: boolean;
 }
 
 export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
   const stage = byId('stage');
   const world = byId('world');
   const orb = byId('orb');
+  const anchor = byId('anchor');
   const headline = byId('headline');
 
   let cards: CardState[] = [];
@@ -70,7 +70,15 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
   let viewport = { width: innerWidth, height: innerHeight };
   let focused: number | null = null;
 
-  const camera = { spin: 0, dragX: 0, dragY: 0, velX: 0, velY: 0, z: 0 };
+  // Orientation accumulates every drag as a screen-space rotation, so the
+  // sphere turns freely in any direction, over the poles included.
+  let orientation: Mat3 = rotateX(Camera.TILT);
+  const camera = { velX: 0, velY: 0, z: 0 };
+
+  /** Turns the sphere around the screen axes: dx about the vertical, dy about the horizontal. */
+  const turn = (dx: number, dy: number): void => {
+    orientation = orthonormalize(multiply(multiply(rotateY(dx), rotateX(-dy)), orientation));
+  };
   let pointer: PointerState | null = null;
 
   const layout = (): void => {
@@ -127,13 +135,14 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
 
   const scrollProgress = (): number => clamp(scrollY / (innerHeight * Camera.DOLLY_SHARE), 0, 1);
 
-  const shadeCards = (pitch: number, yaw: number, progress: number): void => {
+  const shadeCards = (progress: number): void => {
     const { radius: r, perspective } = metrics;
     const shade = 1 - Math.min(1, progress * 1.6);
     const near = perspective * 0.66;
 
     for (const card of cards) {
-      const depth = depthAfterRotation(card.point, pitch, yaw);
+      const { x, y, z: pz } = card.point;
+      const depth = apply(orientation, [x, -y, pz])[2];
       const base = 0.14 + 0.86 * ((depth + 1) / 2) ** 0.85;
       let wash = shade * (1 - base);
       const z = depth * r + camera.z;
@@ -161,20 +170,13 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
   };
 
   const frame = (): void => {
-    const dragging = pointer?.active ?? false;
+    const dragging = pointer !== null;
 
-    if (!dragging && focused === null) {
-      camera.dragX += camera.velX;
-      camera.dragY += camera.velY;
+    if (!dragging && focused === null && (camera.velX || camera.velY)) {
+      turn(camera.velX, camera.velY);
       camera.velX = Math.abs(camera.velX) < Camera.REST ? 0 : camera.velX * Camera.FRICTION;
       camera.velY = Math.abs(camera.velY) < Camera.REST ? 0 : camera.velY * Camera.FRICTION;
     }
-
-    camera.dragY = clamp(
-      camera.dragY,
-      -Camera.PITCH_LIMIT - Camera.TILT,
-      Camera.PITCH_LIMIT - Camera.TILT,
-    );
 
     const progress = scrollProgress();
     setFlag('deep', progress > Camera.DEEP_AT);
@@ -183,15 +185,13 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
     const target = progress * Math.min(64, metrics.radius * 0.12);
     camera.z += (target - camera.z) * Camera.DOLLY_EASE;
 
-    const pitch = Camera.TILT + camera.dragY;
-    const yaw = camera.spin + camera.dragX;
-
-    world.style.transform = `translateZ(${camera.z}px) rotateY(${yaw}deg) rotateX(${pitch}deg)`;
-    // Undo the world rotation (rightmost first), then push the title towards the camera.
-    headline.style.transform = `rotateX(${-pitch}deg) rotateY(${-yaw}deg) translateZ(${metrics.radius * 0.62}px)`;
+    world.style.transform = `translateZ(${camera.z}px) ${toCss(orientation)}`;
+    // The title never rotates: it stays square to the camera, pushed forward
+    // by 62% of the radius so only the nearest frames cross in front of it.
+    anchor.style.transform = `translateZ(${camera.z + metrics.radius * 0.62}px)`;
     headline.style.opacity = String(Math.max(0, 1 - progress * 0.55));
 
-    shadeCards(pitch, yaw, progress);
+    shadeCards(progress);
     requestAnimationFrame(frame);
   };
 
@@ -205,7 +205,6 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
     // Read the card before pointer capture retargets later events to the stage.
     const card =
       event.target instanceof Element ? event.target.closest<HTMLElement>('.card') : null;
-    const active = event.pointerType !== 'touch';
 
     pointer = {
       id: event.pointerId,
@@ -215,14 +214,12 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
       startY: event.clientY,
       lastX: event.clientX,
       lastY: event.clientY,
-      active,
     };
 
-    if (active) {
-      stage.setPointerCapture(event.pointerId);
-      camera.velX = 0;
-      camera.velY = 0;
-    }
+    // Mouse, pen and touch all rotate freely in every direction.
+    stage.setPointerCapture(event.pointerId);
+    camera.velX = 0;
+    camera.velY = 0;
   };
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -230,29 +227,12 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
       return;
     }
 
-    if (!pointer.active) {
-      const totalX = Math.abs(event.clientX - pointer.startX);
-      const totalY = Math.abs(event.clientY - pointer.startY);
-
-      if (Math.hypot(totalX, totalY) < TOUCH_DECIDE_PX) {
-        return;
-      }
-      if (totalY > totalX * 1.15) {
-        pointer = null; // a vertical swipe belongs to the page scroll
-        return;
-      }
-
-      pointer.active = true;
-      stage.setPointerCapture(event.pointerId);
-    }
-
     const dx = (event.clientX - pointer.lastX) * Camera.DEG_PER_PX;
     const dy = (event.clientY - pointer.lastY) * Camera.DEG_PER_PX;
 
-    camera.dragX += dx;
-    camera.dragY -= dy;
+    turn(dx, dy);
     camera.velX = dx;
-    camera.velY = -dy;
+    camera.velY = dy;
     pointer.lastX = event.clientX;
     pointer.lastY = event.clientY;
   };
