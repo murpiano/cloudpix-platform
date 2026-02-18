@@ -22,10 +22,13 @@ interface ViewerOptions {
   onFocus(photoId: number | null): void;
 }
 
+const META_FADE_MS = 180;
+
 export const createViewer = ({ thumbOf, sourceOf, onFocus }: ViewerOptions): Viewer => {
   const root = byId('viewer');
   const plate = byId('viewerPlate');
-  const image = byId<HTMLImageElement>('viewerImg');
+  const meta = byId('viewerMeta');
+  const layers = [...root.querySelectorAll<HTMLImageElement>('.viewer__layer')];
   const title = byId('viewerTitle');
   const stats = byId('viewerStats');
   const like = byId<HTMLButtonElement>('viewerLike');
@@ -38,6 +41,8 @@ export const createViewer = ({ thumbOf, sourceOf, onFocus }: ViewerOptions): Vie
   let sequence: Photo[] = [];
   let index = -1;
   let loadToken = 0;
+  let front = 0;
+  let metaTimer: ReturnType<typeof setTimeout> | undefined;
   let returnFocus: HTMLElement | null = null;
 
   const current = (): Photo | undefined => sequence[index];
@@ -50,29 +55,59 @@ export const createViewer = ({ thumbOf, sourceOf, onFocus }: ViewerOptions): Vie
     stats.textContent = `${plural(count, 'like')} · ${plural(photo.comments.length, 'comment')}`;
   };
 
-  // Show the already decoded thumbnail at once, swap in the full file when it arrives.
-  const showImage = (photo: Photo): void => {
+  /**
+   * Two stacked layers: the next frame decodes on the hidden one and fades in
+   * over the current one, so the picture never blinks or jumps. The decoded
+   * thumbnail shows first; the full file replaces it on the same layer.
+   */
+  const showImage = (photo: Photo, crossfade: boolean): void => {
     const token = ++loadToken;
-    image.src = thumbOf(photo.id) ?? '';
-    image.alt = photo.caption || frameLabel(photo);
+    const target = (crossfade ? layers[1 - front] : layers[front]) as HTMLImageElement;
+    const previous = layers[front] as HTMLImageElement;
 
-    const full = new Image();
-    full.onload = () => {
-      if (token === loadToken) {
-        image.src = full.src;
-      }
+    const upgrade = (): void => {
+      const full = new Image();
+      full.onload = () => {
+        if (token === loadToken) {
+          target.src = full.src;
+        }
+      };
+      full.src = assetUrl(photo.src);
     };
-    full.src = assetUrl(photo.src);
+
+    const reveal = (): void => {
+      if (token !== loadToken) {
+        return;
+      }
+      if (target !== previous) {
+        target.classList.add('is-front');
+        target.removeAttribute('aria-hidden');
+        previous.classList.remove('is-front');
+        previous.setAttribute('aria-hidden', 'true');
+        front = layers.indexOf(target);
+      }
+      upgrade();
+    };
+
+    target.alt = photo.caption || frameLabel(photo);
+    target.src = thumbOf(photo.id) ?? assetUrl(photo.src);
+    target.decode().then(reveal, reveal);
   };
 
-  const render = (photo: Photo): void => {
-    showImage(photo);
+  const renderMeta = (photo: Photo): void => {
     title.textContent = frameLabel(photo);
     position.textContent = `${pad2(index + 1)} / ${pad2(sequence.length)}`;
     caption.textContent = photo.caption;
     tags.replaceChildren(...photo.tags.map((tag) => h('li', {}, tag)));
     renderLikes(photo);
     thread.render(photo.comments);
+  };
+
+  const render = (photo: Photo): void => {
+    clearTimeout(metaTimer);
+    meta.classList.remove('is-swapping');
+    showImage(photo, false);
+    renderMeta(photo);
   };
 
   const open = (photoId: number, source: HTMLElement, nextSequence: Photo[]): void => {
@@ -118,10 +153,19 @@ export const createViewer = ({ thumbOf, sourceOf, onFocus }: ViewerOptions): Vie
 
     index = (index + delta + sequence.length) % sequence.length;
     const photo = current();
-    if (photo) {
-      render(photo);
-      onFocus(photo.id);
+    if (!photo) {
+      return;
     }
+
+    showImage(photo, true);
+    onFocus(photo.id);
+    // Text fades out, changes while invisible, then fades back in.
+    meta.classList.add('is-swapping');
+    clearTimeout(metaTimer);
+    metaTimer = setTimeout(() => {
+      renderMeta(photo);
+      meta.classList.remove('is-swapping');
+    }, META_FADE_MS);
   };
 
   root.addEventListener('click', (event) => {

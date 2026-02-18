@@ -139,10 +139,11 @@
       <div class="viewer__scrim" data-close></div>
       <article class="viewer__plate" id="viewerPlate">
         <div class="viewer__shot">
-          <img id="viewerImg" alt="" />
+          <img class="viewer__layer is-front" alt="" />
+          <img class="viewer__layer" alt="" aria-hidden="true" />
           <button type="button" class="viewer__close" data-close>Close</button>
         </div>
-        <div class="viewer__meta">
+        <div class="viewer__meta" id="viewerMeta">
           <div class="viewer__about">
             <h2 id="viewerTitle" class="viewer__title"></h2>
             <p class="viewer__stats" id="viewerStats"></p>
@@ -164,9 +165,9 @@
             <ul class="viewer__tags" id="viewerTags"></ul>
           </div>
           <section class="thread" aria-label="Comments">
+            <h3 class="thread__title" id="threadTitle">Comments</h3>
             <ul class="thread__list" id="threadList"></ul>
             <p class="thread__empty" id="threadEmpty">No comments yet.</p>
-            <button type="button" class="thread__more" id="threadMore"></button>
           </section>
         </div>
       </article>
