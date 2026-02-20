@@ -1,6 +1,8 @@
 import './studio.scss';
 import { ApiError, uploadPhoto } from '@/api/client';
 import { hasFlag, lockScroll, setFlag } from '@/app/flags';
+import { Timing } from '@/config';
+import { onSlow } from '@/lib/async';
 import { byId, fromHTML, h } from '@/lib/dom';
 import { Icon } from '@/lib/icons';
 import { bakeFrame } from './bake';
@@ -263,10 +265,17 @@ export const createStudio = ({ onPublished }: StudioOptions): Studio => {
       body.append('effect', effect);
       body.append('effect-level', strength.value);
       body.append('hashtags', serializeTags(tags));
-      body.append('description', caption.value.trim());
+      // The server stores only the description, so tags travel inside it too.
+      body.append(
+        'description',
+        [caption.value.trim(), serializeTags(tags)].filter(Boolean).join(' '),
+      );
 
       say('Sending to the archive…');
-      await uploadPhoto(body);
+      await onSlow(uploadPhoto(body), Timing.WAKE_HINT_AFTER, () =>
+        say('The server is waking up after a nap — this can take up to a minute…'),
+      );
+      say('Updating the archive…');
       await onPublished();
       reset();
       close();

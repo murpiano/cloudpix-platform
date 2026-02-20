@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePhoto, parsePhotos, parseTags } from './parse';
+import { parsePhoto, parsePhotos, parseTags, splitDescription } from './parse';
 
 const record = {
   id: 3,
@@ -55,5 +55,23 @@ describe('parseTags', () => {
   it('keeps only real hashtags', () => {
     expect(parseTags('#a # b #c')).toEqual(['#a', '#c']);
     expect(parseTags(undefined)).toEqual([]);
+  });
+});
+
+describe('splitDescription', () => {
+  it('takes trailing hashtags off the caption', () => {
+    expect(splitDescription('Dusk over the bay #sea #calm')).toEqual({
+      caption: 'Dusk over the bay',
+      tags: ['#sea', '#calm'],
+    });
+  });
+
+  it('keeps hashtags that sit inside the sentence', () => {
+    expect(splitDescription('A #quiet morning')).toEqual({ caption: 'A #quiet morning', tags: [] });
+  });
+
+  it('handles tag-only and empty descriptions', () => {
+    expect(splitDescription('#sea')).toEqual({ caption: '', tags: ['#sea'] });
+    expect(splitDescription(undefined)).toEqual({ caption: '', tags: [] });
   });
 });

@@ -15,6 +15,7 @@ import { initDropzone } from '@/features/studio/dropzone';
 import { createStudio } from '@/features/studio/studio';
 import { toast } from '@/features/toast/toast';
 import { createViewer } from '@/features/viewer/viewer';
+import { onSlow } from '@/lib/async';
 import { decodeImage } from '@/lib/decode';
 import type { DecodedImage } from '@/lib/decode';
 import { isTyping, nextFrame, wait } from '@/lib/dom';
@@ -116,7 +117,9 @@ const applyPhotos = (next: Photo[]): void => {
 
 async function refresh(): Promise<void> {
   try {
-    const next = await fetchPhotos();
+    const next = await onSlow(fetchPhotos(), Timing.WAKE_HINT_AFTER, () =>
+      toast('The server is waking up — the archive will refresh in a moment'),
+    );
     await decodeMissing(next);
     applyPhotos(next);
     toast('Frame sent into orbit');
@@ -135,19 +138,14 @@ const reveal = async (): Promise<void> => {
 };
 
 const boot = async (): Promise<void> => {
-  const hint = setTimeout(
-    () => splash.status('Waking the server · first visit can take a minute'),
-    Timing.WAKE_HINT_AFTER,
-  );
-
   let list: Photo[];
   try {
-    list = await fetchPhotos();
+    list = await onSlow(fetchPhotos(), Timing.WAKE_HINT_AFTER, () =>
+      splash.status('Waking the server · first visit can take a minute'),
+    );
   } catch {
     splash.fail(boot);
     return;
-  } finally {
-    clearTimeout(hint);
   }
 
   splash.status('');

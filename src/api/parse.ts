@@ -32,6 +32,22 @@ export const parseTags = (value: unknown): string[] =>
     .split(/\s+/)
     .filter((tag) => tag.startsWith('#') && tag.length > 1);
 
+const isTagWord = (word: string): boolean => /^#[\p{L}\p{N}_]+$/u.test(word);
+
+/**
+ * The server keeps only a description, so the studio appends tags to it.
+ * Trailing #words become tags again; the rest is the caption.
+ */
+export const splitDescription = (value: unknown): { caption: string; tags: string[] } => {
+  const words = asText(value).split(/\s+/).filter(Boolean);
+  let start = words.length;
+  while (start > 0 && isTagWord(words[start - 1] as string)) {
+    start -= 1;
+  }
+
+  return { caption: words.slice(0, start).join(' '), tags: words.slice(start) };
+};
+
 /** Turns one server record into a Photo, or null when the record is unusable. */
 export const parsePhoto = (raw: unknown): Photo | null => {
   if (!isObject(raw) || typeof raw.id !== 'number') {
@@ -47,13 +63,15 @@ export const parsePhoto = (raw: unknown): Photo | null => {
     ? raw.comments.map(parseComment).filter((comment) => comment !== null)
     : [];
 
+  const { caption, tags } = splitDescription(raw.description);
+
   return {
     id: raw.id,
     src,
     likes: asCount(raw.likes),
     comments,
-    caption: asText(raw.description),
-    tags: parseTags(raw.hashtags),
+    caption,
+    tags: [...new Set([...tags, ...parseTags(raw.hashtags)])],
   };
 };
 
