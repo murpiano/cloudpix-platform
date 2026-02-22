@@ -214,8 +214,11 @@
     }
   }
 
+  // Leaves room for the grid toggle in the opposite corner.
   @include mobile {
-    max-width: calc(100vw - var(--pad) * 2 - var(--safe-left) - var(--safe-right));
+    max-width: calc(
+      100vw - var(--pad) * 2 - var(--safe-left) - var(--safe-right) - var(--tap) - 16px
+    );
   }
 
   @media (max-width: 640px) {
@@ -274,6 +277,10 @@
     display: none;
   }
 
+  @media (pointer: coarse) {
+    display: none;
+  }
+
   @media (max-height: 520px) and (orientation: landscape) {
     display: none;
   }
@@ -306,6 +313,19 @@
     opacity: 1;
     transform: none;
     pointer-events: auto;
+  }
+
+  // Touch screens rotate the sphere with every swipe and cannot scroll into
+  // it, so the toggle is always there, bottom right where the colophon is hidden.
+  @media (pointer: coarse) {
+    right: calc(var(--pad) + var(--safe-right));
+    left: auto;
+
+    .revealed & {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
   }
 
   .lit & {
