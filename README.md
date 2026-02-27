@@ -16,7 +16,8 @@ browser.
 
 - **3D frame sphere without WebGL.** Cards sit on a Fibonacci lattice and are placed with CSS 3D
   transforms. Drags build up a rotation matrix (a trackball, not yaw/pitch angles), so the sphere
-  turns freely in any direction, over the poles too, with mouse, pen or touch. A single
+  turns freely in any direction, over the poles too, with mouse, pen or touch. Every card is
+  re-oriented through the perspective projection, so no photo is ever shown upside down. A single
   `requestAnimationFrame` loop drives inertia, a scroll dolly and per-card depth shading. It writes
   to the DOM only when a value changes.
 - **FLIP lightbox.** A frame grows out of the exact card or tile you clicked and returns there on

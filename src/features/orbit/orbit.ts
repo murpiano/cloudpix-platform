@@ -9,6 +9,7 @@ import { fibonacciSphere, orbitMetrics } from './layout';
 import type { OrbitMetrics, SpherePoint } from './layout';
 import { apply, multiply, orthonormalize, rotateX, rotateY, toCss } from './rotation';
 import type { Mat3 } from './rotation';
+import { uprightCard } from './upright';
 
 export interface OrbitItem {
   photo: Photo;
@@ -73,26 +74,37 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
   // Orientation accumulates every drag as a screen-space rotation, so the
   // sphere turns freely in any direction, over the poles included.
   let orientation: Mat3 = rotateX(Camera.TILT);
+  /** False when cards must be re-placed (the sphere turned or resized). */
+  let placed = false;
+  let placedAtZ = 0;
   const camera = { velX: 0, velY: 0, z: 0 };
 
   /** Turns the sphere around the screen axes: dx about the vertical, dy about the horizontal. */
   const turn = (dx: number, dy: number): void => {
     orientation = orthonormalize(multiply(multiply(rotateY(dx), rotateX(-dy)), orientation));
+    placed = false;
   };
   let pointer: PointerState | null = null;
 
   const layout = (): void => {
     metrics = orbitMetrics(innerWidth, innerHeight);
-    const { radius: r } = metrics;
-
     stage.style.setProperty('--persp', `${metrics.perspective}px`);
     orb.style.setProperty('--cw', `${metrics.cardWidth}px`);
+    placed = false;
+  };
+
+  /** Keeps every card facing outwards and upright on screen, whatever the sphere's rotation. */
+  const placeCards = (): void => {
+    const { radius, perspective } = metrics;
+    const view = { perspective, z: camera.z };
 
     for (const { element, point } of cards) {
-      element.style.transform =
-        `translate3d(${point.x * r}px, ${-point.y * r}px, ${point.z * r}px) ` +
-        `rotateY(${point.lon}deg) rotateX(${point.lat}deg)`;
+      const matrix = uprightCard(orientation, [point.x, -point.y, point.z], radius, view);
+      element.style.transform = `matrix3d(${matrix.join(',')})`;
     }
+
+    placed = true;
+    placedAtZ = camera.z;
   };
 
   const relayout = (force = false): void => {
@@ -191,6 +203,10 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
     anchor.style.transform = `translateZ(${camera.z + metrics.radius * 0.62}px)`;
     headline.style.opacity = String(Math.max(0, 1 - progress * 0.55));
 
+    // "Up on screen" depends on the camera distance too, so a dolly re-places the cards.
+    if (!placed || Math.abs(camera.z - placedAtZ) > 0.5) {
+      placeCards();
+    }
     shadeCards(progress);
     requestAnimationFrame(frame);
   };
@@ -216,7 +232,9 @@ export const createOrbit = ({ onOpen }: OrbitOptions): Orbit => {
       lastY: event.clientY,
     };
 
-    // Mouse, pen and touch all rotate freely in every direction.
+    // Mouse, pen and touch all rotate freely in every direction. Cancelling
+    // the default keeps a mouse drag from painting a text selection.
+    event.preventDefault();
     stage.setPointerCapture(event.pointerId);
     camera.velX = 0;
     camera.velY = 0;

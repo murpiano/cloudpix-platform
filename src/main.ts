@@ -2,6 +2,7 @@ import '@/styles/index';
 import { assetUrl, fetchPhotos } from '@/api/client';
 import type { Photo } from '@/api/types';
 import { setFlag } from '@/app/flags';
+import { guardPhotos } from '@/app/guard';
 import { Timing } from '@/config';
 import { createArchive } from '@/features/archive/archive';
 import { initChrome, mountIcons } from '@/features/chrome/chrome';
@@ -23,6 +24,7 @@ import { isTyping, nextFrame, wait } from '@/lib/dom';
 const splash = createSplash();
 mountIcons();
 initCursor();
+guardPhotos();
 
 let photos: Photo[] = [];
 const decoded = new Map<number, DecodedImage>();

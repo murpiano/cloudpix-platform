@@ -35,6 +35,18 @@ img {
   max-width: 100%;
 }
 
+// Photos behave like surfaces, not documents: no blue selection,
+// no dragging the file out, no long-press "save image" callout.
+.photo-surface {
+  -webkit-touch-callout: none;
+  user-select: none;
+
+  img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+}
+
 a,
 button {
   -webkit-tap-highlight-color: transparent;

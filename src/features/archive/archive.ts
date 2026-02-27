@@ -84,7 +84,12 @@ export const createArchive = ({ onOpen, onToggle }: ArchiveOptions): Archive => 
     const tile = h(
       'figure',
       { class: 'tile', tabindex: 0, role: 'button', 'aria-label': `Open ${label}` },
-      h('img', { src: thumbs.get(photo.id) ?? '', alt: photo.caption || label, loading: 'lazy' }),
+      h('img', {
+        src: thumbs.get(photo.id) ?? '',
+        alt: photo.caption || label,
+        loading: 'lazy',
+        draggable: 'false',
+      }),
       h('figcaption', {}, h('span', {}, label), stats(photo)),
     );
     tile.dataset.id = String(photo.id);

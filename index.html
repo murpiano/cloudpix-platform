@@ -34,7 +34,7 @@
     <div id="scrolltrack" aria-hidden="true"></div>
 
     <main>
-      <div id="stage" class="stage">
+      <div id="stage" class="stage photo-surface">
         <div id="world" class="stage__world">
           <div id="orb" class="stage__orb"></div>
         </div>
@@ -62,7 +62,7 @@
             aria-label="Sort frames"
           ></div>
         </header>
-        <div id="archiveRows" class="archive__rows"></div>
+        <div id="archiveRows" class="archive__rows photo-surface"></div>
       </section>
     </main>
 
@@ -138,9 +138,9 @@
     >
       <div class="viewer__scrim" data-close></div>
       <article class="viewer__plate" id="viewerPlate">
-        <div class="viewer__shot">
-          <img class="viewer__layer is-front" alt="" />
-          <img class="viewer__layer" alt="" aria-hidden="true" />
+        <div class="viewer__shot photo-surface">
+          <img class="viewer__layer is-front" alt="" draggable="false" />
+          <img class="viewer__layer" alt="" aria-hidden="true" draggable="false" />
           <button type="button" class="viewer__close" data-close>Close</button>
         </div>
         <div class="viewer__meta" id="viewerMeta">
@@ -195,7 +195,7 @@
             accept="image/jpeg,image/png,image/webp"
           />
           <div class="studio__preview" id="studioPreview" hidden>
-            <div class="studio__viewport" id="studioViewport">
+            <div class="studio__viewport photo-surface" id="studioViewport">
               <img id="studioImg" alt="Preview of the frame you are about to publish" />
             </div>
             <button type="button" class="studio__swap" id="studioSwap">Choose another file</button>
@@ -205,7 +205,12 @@
         <div class="studio__panel">
           <fieldset class="studio__group">
             <legend>Look</legend>
-            <div class="looks" id="studioLooks" role="radiogroup" aria-label="Effect"></div>
+            <div
+              class="looks photo-surface"
+              id="studioLooks"
+              role="radiogroup"
+              aria-label="Effect"
+            ></div>
             <label class="range">
               <span>Strength <output id="strengthOut">100</output></span>
               <input type="range" id="studioStrength" min="0" max="100" value="100" />
