@@ -92,3 +92,19 @@
     opacity: 1;
   }
 }
+
+// A personal handle inside running text: reads as a link without shouting.
+.handle {
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color var(--transition-duration) ease,
+    text-decoration-color var(--transition-duration) ease;
+
+  @include hover {
+    color: var(--color-text-primary);
+    text-decoration-color: currentcolor;
+  }
+}
