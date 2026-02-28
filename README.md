@@ -21,7 +21,7 @@ browser.
   `requestAnimationFrame` loop drives inertia, a scroll dolly and per-card depth shading. It writes
   to the DOM only when a value changes.
 - **FLIP lightbox.** A frame grows out of the exact card or tile you clicked and returns there on
-  close. ← / → cross-fade between frames on two stacked layers. The picture box has a fixed size,
+  close. ← / → or a swipe on touch screens cross-fade between frames on two stacked layers. The picture box has a fixed size,
   so paging never makes it jump. The decoded thumbnail shows at once, and the full-size file
   replaces it when it loads. Comments scroll inside their own panel.
 - **Studio with baked effects.** Five looks (Mono, Noir, Vintage, Glow, Soft Blur), strength and

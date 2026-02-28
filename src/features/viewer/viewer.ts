@@ -7,6 +7,7 @@ import { byId, h } from '@/lib/dom';
 import { frameLabel, plural } from '@/lib/format';
 import { pad2 } from '@/lib/math';
 import { flipIn, flipOut } from './flip';
+import { listenForSwipes } from './swipe';
 import { createThread } from './thread';
 
 export interface Viewer {
@@ -172,6 +173,25 @@ export const createViewer = ({ thumbOf, sourceOf, onFocus }: ViewerOptions): Vie
     if (event.target instanceof Element && event.target.closest('[data-close]')) {
       close();
     }
+  });
+
+  // Touch and pen: the photo follows the finger, then pages or springs back.
+  const shot = plate.querySelector<HTMLElement>('.viewer__shot') as HTMLElement;
+  listenForSwipes(shot, {
+    onDrag(dx) {
+      shot.classList.add('is-dragging');
+      const front = layers.find((layer) => layer.classList.contains('is-front'));
+      if (front) {
+        front.style.transform = `translateX(${dx * 0.35}px)`;
+      }
+    },
+    onRelease(delta) {
+      shot.classList.remove('is-dragging');
+      layers.forEach((layer) => (layer.style.transform = ''));
+      if (delta) {
+        step(delta);
+      }
+    },
   });
 
   byId('viewerPrev').addEventListener('click', () => step(-1));

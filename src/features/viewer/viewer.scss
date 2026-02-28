@@ -38,8 +38,9 @@
     border-radius: var(--border-radius-xs);
     background-color: var(--color-surface-raised);
     box-shadow: 0 30px 90px rgb(0 0 0 / 75%);
-
     overflow: hidden;
+    // Horizontal swipes page through frames; vertical ones still scroll the page.
+    touch-action: pan-y;
   }
 
   &__layer {
@@ -49,10 +50,16 @@
     height: 100%;
     object-fit: cover;
     opacity: 0;
-    transition: opacity 0.45s ease;
+    transition:
+      opacity 0.45s ease,
+      transform 0.35s var(--ease);
 
     &.is-front {
       opacity: 1;
+    }
+
+    .is-dragging & {
+      transition: opacity 0.45s ease;
     }
   }
 
@@ -185,6 +192,7 @@
   @media (max-width: 640px) {
     display: block;
     overflow-y: auto;
+    overscroll-behavior: contain;
     background-color: var(--color-bg);
     padding: calc(52px + var(--safe-top)) calc(var(--pad) + var(--safe-right))
       calc(var(--pad) + var(--safe-bottom)) calc(var(--pad) + var(--safe-left));

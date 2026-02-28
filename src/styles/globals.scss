@@ -1,6 +1,8 @@
 html {
   background-color: var(--color-bg);
   scrollbar-gutter: stable;
+  // The root scroller decides pull-to-refresh: a downward swipe must never reload the page.
+  overscroll-behavior-y: none;
   -webkit-text-size-adjust: 100%;
 }
 
