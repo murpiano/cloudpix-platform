@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A photo archive that lives on a draggable 3D sphere — browse, sort, comment and publish frames with in-browser effects.",
+  "description": "A photo archive on a draggable 3D sphere. Browse, sort and publish frames with in-browser effects.",
   "author": "Bogdan Trotsenko <https://github.com/murpiano>",
   "license": "MIT",
   "homepage": "https://murpiano.github.io/cloudpix-platform/",
