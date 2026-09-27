@@ -94,7 +94,7 @@ tags, crop planning, filters, swipe detection, parsing) have tests next to them.
 
 ## API
 
-Base URL: `https://bvtrots-test-server.onrender.com/cloudpix-platform`
+Base URL: `https://murpiano-server.onrender.com/cloudpix-platform`
 
 | Method | Path      | Body                                                                                            |
 | ------ | --------- | ----------------------------------------------------------------------------------------------- |

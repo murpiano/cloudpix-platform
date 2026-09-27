@@ -1,4 +1,4 @@
-export const SERVER_URL = 'https://bvtrots-test-server.onrender.com';
+export const SERVER_URL = 'https://murpiano-server.onrender.com';
 export const API_URL = `${SERVER_URL}/cloudpix-platform`;
 
 export const Endpoint = {
