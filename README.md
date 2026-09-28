@@ -9,13 +9,14 @@ framework and no WebGL.
 
 The API sits on a free Render instance that sleeps when nobody uses it, so the first visit can
 take up to a minute. The loading screen and the upload form tell you when the server is still
-waking up. Uploaded frames are kept in memory and disappear after a restart.
+waking up. Uploaded frames are saved to the server's disk, which Render wipes on every restart
+and deploy, so they disappear after that.
 
 ## What you can do
 
 Drag the sphere in any direction and scroll to move closer. Click a frame to open it, then page
 with the arrow keys or a swipe. Switch to the grid to sort the archive by date, likes or comment
-count, or shuffle it. To add your own frame, pick a photo, try one of five effects, crop it, add
+count, or shuffle it. To add your own frame, pick a photo, try one of four effects, crop it, add
 up to six tags and publish. It shows up on the sphere for everyone.
 
 ## How it works
@@ -70,7 +71,7 @@ npm run build     # type-check and build into dist/
 npm run preview   # serve the build
 ```
 
-Needs Node 20.19 or newer. Every push to `main` runs `npm run check`, builds and deploys to
+Needs Node 22.12 or newer. Every push to `main` runs `npm run check`, builds and deploys to
 GitHub Pages (`.github/workflows/deploy.yml`).
 
 ## Where things live
