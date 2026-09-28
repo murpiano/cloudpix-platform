@@ -110,4 +110,4 @@ Base URL: `https://murpiano-server.onrender.com/cloudpix-platform`
 
 ---
 
-<sub>Bogdan Trotsenko · [@murpiano](https://github.com/murpiano) · [Telegram](https://t.me/murpiano) · MIT</sub>
+<sub>[Bogdan Trotsenko](https://github.com/murpiano) · [murpiano](https://github.com/murpiano) · [Telegram](https://t.me/murpiano) · [MIT](LICENSE)</sub>
