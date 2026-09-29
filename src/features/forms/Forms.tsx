@@ -3,7 +3,10 @@ import { appStore } from '@/state/app-state';
 import { closeForm } from '@/state/layers';
 import { useStore } from '@/state/store';
 import { AccountForm } from './AccountForm';
+import { AlbumForm } from './AlbumForm';
 import { LoginForm } from './LoginForm';
+import { PhotoForm } from './PhotoForm';
+import { TripForm } from './TripForm';
 
 const close = () => closeForm(appStore);
 
@@ -16,8 +19,21 @@ export function Forms({ world }: { world: World }) {
       return <LoginForm archive={world.archive} why={form.why} onClose={close} />;
     case 'account':
       return <AccountForm archive={world.archive} onClose={close} />;
-    default:
-      // the trip, album and photo sheets arrive in the next task
-      return null;
+    case 'trip':
+      return <TripForm world={world} id={form.id} albumIds={form.albumIds} onClose={close} />;
+    case 'album':
+      return (
+        <AlbumForm
+          world={world}
+          id={form.id}
+          cityKey={form.cityKey}
+          tripId={form.tripId}
+          onClose={close}
+        />
+      );
+    case 'photo':
+      return (
+        <PhotoForm world={world} albumId={form.albumId} photoKey={form.photoKey} onClose={close} />
+      );
   }
 }
