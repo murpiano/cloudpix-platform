@@ -4,8 +4,11 @@ import { buildDemo, DEMO_HOME } from '@/data/demo';
 import type { Credit, Place } from '@/data/types';
 import { earthFromTopology } from '@/geo/world';
 import type { EarthGeo, WorldTopology } from '@/geo/world';
+import { demoUrl } from '@/lib/assets';
 import { buildLights } from '@/render/lights';
 import type { Light } from '@/render/lights';
+
+export { demoUrl };
 
 export interface World {
   earth: EarthGeo;
@@ -13,8 +16,6 @@ export interface World {
   archive: Archive;
   home: Place;
 }
-
-export const demoUrl = (path: string): string => `${import.meta.env.BASE_URL}demo/${path}`;
 
 const fetchJson = async <T>(path: string): Promise<T> => {
   const response = await fetch(demoUrl(path));
