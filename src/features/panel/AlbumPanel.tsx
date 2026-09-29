@@ -3,10 +3,13 @@ import type { World } from '@/app/boot';
 import { useDirector } from '@/app/director-context';
 import type { Archive } from '@/data/archive';
 import { cityPhotos, creditLine, photoUrl } from '@/data/photos';
+import { photoKey } from '@/data/social';
 import { tripOfAlbum } from '@/data/trips';
 import type { Album, Credit } from '@/data/types';
 import { monthYear } from '@/lib/dates';
+import { useInterval } from '@/lib/useInterval';
 import { appStore } from '@/state/app-state';
+import { openPhoto } from '@/state/layers';
 import { settingsStore } from '@/state/settings';
 import { useStore } from '@/state/store';
 import { cityAlbums, scopedAlbums } from '@/tour/tour';
@@ -14,7 +17,6 @@ import type { Tour } from '@/tour/tour';
 import cozyRoom from './cozy-room.svg?raw';
 import { cardRole, wheelSteps } from './stack';
 import type { CardRole } from './stack';
-import { useWorldInterval } from './useWorldInterval';
 import './panel.scss';
 
 /** Each photo dissolves into the next over this time. */
@@ -107,7 +109,7 @@ function AlbumStack({ world, list, focus }: { world: World; list: number[]; focu
     if (index !== undefined) director.selectAlbum(index);
   };
 
-  useWorldInterval(
+  useInterval(
     () => {
       if (current === undefined) return;
       setShown((map) => new Map(map).set(current, (map.get(current) ?? 0) + 1));
@@ -189,6 +191,14 @@ function AlbumStack({ world, list, focus }: { world: World; list: number[]; focu
             position={`${k + 1} / ${n}`}
             credits={world.credits}
             onSelect={role === 'cur' ? undefined : () => director.selectAlbum(index)}
+            onOpen={
+              role === 'cur'
+                ? (photoIndex: number, element: HTMLElement) => {
+                    const { x, y, width, height } = element.getBoundingClientRect();
+                    openPhoto(appStore, album.id, photoIndex, { x, y, width, height });
+                  }
+                : undefined
+            }
           />
         );
       })}
@@ -203,6 +213,7 @@ function AlbumCard({
   position,
   credits,
   onSelect,
+  onOpen,
 }: {
   album: Album;
   role: CardRole;
@@ -210,6 +221,7 @@ function AlbumCard({
   position: string;
   credits: ReadonlyMap<string, Credit>;
   onSelect: (() => void) | undefined;
+  onOpen: ((photoIndex: number, element: HTMLElement) => void) | undefined;
 }) {
   const photos = album.photos;
   const count = photos.length;
@@ -218,7 +230,13 @@ function AlbumCard({
   const under = count > 1 && step > 0 ? (step - 1) % count : -1;
   const photo = photos[on];
   return (
-    <div className={`card card--${role}`} onClick={onSelect}>
+    <div
+      className={`card card--${role}`}
+      onClick={(event) => {
+        if (onOpen && on >= 0) onOpen(on, event.currentTarget);
+        else onSelect?.();
+      }}
+    >
       <div className="card__pan">
         {photos.map((ref, i) => (
           <img
@@ -226,6 +244,7 @@ function AlbumCard({
             src={photoUrl(ref) ?? undefined}
             alt=""
             draggable={false}
+            data-photo-key={i === on ? photoKey(ref) : undefined}
             className={i === on ? 'is-on' : i === under ? 'is-under' : undefined}
           />
         ))}

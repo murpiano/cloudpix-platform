@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GlobeStage } from '@/features/globe/GlobeStage';
 import { useKeys } from '@/features/keys/useKeys';
+import { Lightbox } from '@/features/lightbox/Lightbox';
 import { AlbumPanel } from '@/features/panel/AlbumPanel';
 import { Timeline } from '@/features/timeline/Timeline';
 import { appStore } from '@/state/app-state';
@@ -29,6 +30,7 @@ export function Stage({ world }: { world: World }) {
       <GlobeStage world={world} director={director} />
       <AlbumPanel world={world} />
       <Timeline archive={world.archive} />
+      <Lightbox world={world} />
     </DirectorContext>
   );
 }
