@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { Archive } from '@/data/archive';
 import { appStore } from '@/state/app-state';
 import { backArchive } from '@/state/archive-nav';
-import { closePhoto, escapeTarget, stepPhoto, toggleSlideshow } from '@/state/layers';
+import { closeForm, closePhoto, escapeTarget, stepPhoto, toggleSlideshow } from '@/state/layers';
 import type { Director } from '@/tour/director';
 
 /**
@@ -24,10 +24,13 @@ export const useKeys = (director: Director, archive: Archive): void => {
         return;
       }
       const state = appStore.get();
+      // a form is modal: only Esc reaches past it
+      if (state.form && event.key !== 'Escape') return;
 
       if (event.key === 'Escape') {
         const layer = escapeTarget(state);
-        if (layer === 'menu') appStore.set({ menu: null });
+        if (layer === 'form') closeForm(appStore);
+        else if (layer === 'menu') appStore.set({ menu: null });
         else if (layer === 'photo') closePhoto(appStore);
         else if (layer === 'archive') backArchive(appStore);
         else director.escape();

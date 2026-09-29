@@ -46,6 +46,14 @@ export type ArchivePage =
   | { kind: 'years' }
   | { kind: 'year'; year: number };
 
+/** A modal sheet over everything: logging in, the account, a trip, an album, a photo. */
+export type FormView =
+  | { kind: 'login'; why: string | null }
+  | { kind: 'account' }
+  | { kind: 'trip'; id: string | null; albumIds: string[] }
+  | { kind: 'album'; id: string | null; cityKey: string | null; tripId: string | null }
+  | { kind: 'photo'; albumId: string; photoKey: string };
+
 /** The archive over the globe: the pages walked, the last one shown. */
 export interface ArchiveView {
   stack: ArchivePage[];
@@ -85,6 +93,8 @@ export interface AppState {
   menu: 'nav' | 'settings' | null;
   /** The archive, open over the globe. */
   archive: ArchiveView | null;
+  /** The form sheet, open over everything. */
+  form: FormView | null;
   /** Counts the year and trip tours that ended by themselves. */
   tourDone: number;
 }
@@ -106,6 +116,7 @@ export const INITIAL_STATE: AppState = {
   photo: null,
   menu: null,
   archive: null,
+  form: null,
   tourDone: 0,
 };
 

@@ -1,11 +1,11 @@
-import type { AppState, Rect } from './app-state';
+import type { AppState, FormView, Rect } from './app-state';
 import type { Store } from './store';
 
 type AppStore = Store<AppState>;
 
-/** The world clock stops while the photo window or the archive is open. */
+/** The world clock stops while a form, the photo window or the archive is open. */
 export const pausedFor = (state: AppState): boolean =>
-  state.photo !== null || state.archive !== null;
+  state.form !== null || state.photo !== null || state.archive !== null;
 
 export const openPhoto = (store: AppStore, albumId: string, index: number, from: Rect | null) => {
   store.set({
@@ -45,8 +45,26 @@ export const toggleMenu = (store: AppStore, menu: 'nav' | 'settings') => {
   store.set({ menu: store.get().menu === menu ? null : menu });
 };
 
-/** What Esc closes, innermost first: form (plan 5), menu, photo, archive (one step), the journey. */
-export type EscapeTarget = 'menu' | 'photo' | 'archive' | 'journey';
+export const openForm = (store: AppStore, form: FormView) => {
+  store.set({ form, menu: null });
+  store.set({ paused: pausedFor(store.get()) });
+};
+
+export const closeForm = (store: AppStore) => {
+  store.set({ form: null });
+  store.set({ paused: pausedFor(store.get()) });
+};
+
+/** What Esc closes, innermost first: form, menu, photo, archive (one step), the journey. */
+export type EscapeTarget = 'form' | 'menu' | 'photo' | 'archive' | 'journey';
 
 export const escapeTarget = (state: AppState): EscapeTarget =>
-  state.menu ? 'menu' : state.photo ? 'photo' : state.archive ? 'archive' : 'journey';
+  state.form
+    ? 'form'
+    : state.menu
+      ? 'menu'
+      : state.photo
+        ? 'photo'
+        : state.archive
+          ? 'archive'
+          : 'journey';

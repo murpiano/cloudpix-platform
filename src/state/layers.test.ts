@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { INITIAL_STATE } from './app-state';
 import type { AppState } from './app-state';
 import {
+  closeForm,
   closePhoto,
   escapeTarget,
   finishPhoto,
+  openForm,
   openPhoto,
   stepPhoto,
   toggleMenu,
@@ -103,5 +105,36 @@ describe('escapeTarget', () => {
     expect(escapeTarget(store.get())).toBe('photo');
     store.set({ menu: 'settings' });
     expect(escapeTarget(store.get())).toBe('menu');
+  });
+});
+
+describe('the form layer', () => {
+  it('opens over everything, closes the menu and stops the world clock', () => {
+    const store = createStore<AppState>({ ...INITIAL_STATE, menu: 'nav' });
+    openForm(store, { kind: 'login', why: null });
+    expect(store.get()).toMatchObject({ form: { kind: 'login' }, menu: null, paused: true });
+    closeForm(store);
+    expect(store.get()).toMatchObject({ form: null, paused: false });
+  });
+
+  it('leaves the clock stopped when the archive is still open under it', () => {
+    const store = createStore<AppState>({
+      ...INITIAL_STATE,
+      archive: { stack: [{ kind: 'trips' }], slow: false },
+    });
+    openForm(store, { kind: 'account' });
+    closeForm(store);
+    expect(store.get().paused).toBe(true);
+  });
+
+  it('Esc closes the form before the menu, the photo or the archive', () => {
+    const state: AppState = {
+      ...INITIAL_STATE,
+      form: { kind: 'account' },
+      menu: 'nav',
+      archive: { stack: [{ kind: 'trips' }], slow: false },
+    };
+    expect(escapeTarget(state)).toBe('form');
+    expect(escapeTarget({ ...state, form: null })).toBe('menu');
   });
 });
