@@ -1,11 +1,15 @@
 import { linkArchive } from '@/data/archive';
 import type { Archive } from '@/data/archive';
-import { buildDemo, DEMO_HOME } from '@/data/demo';
+import { DEMO_HOME } from '@/data/demo';
+import { demoRepository } from '@/data/demo-repository';
+import { localRepository } from '@/data/local-repository';
 import type { Credit, Place } from '@/data/types';
 import { earthFromTopology } from '@/geo/world';
 import type { EarthGeo, WorldTopology } from '@/geo/world';
 import { demoUrl } from '@/lib/assets';
 import { buildLights } from '@/render/lights';
+import { setSource } from '@/state/owner';
+import { userStore } from '@/state/user';
 import type { Light } from '@/render/lights';
 
 export { demoUrl };
@@ -27,18 +31,23 @@ const fetchJson = async <T>(path: string): Promise<T> => {
   return (await response.json()) as T;
 };
 
-/** Loads the world map and the demo archive. Logged out, the demo traveller is all there is. */
+/** Loads the world map and the archive: the demo traveller, or the owner's own. */
 export const loadWorld = async (): Promise<World> => {
   const [topology, credits] = await Promise.all([
     fetchJson<WorldTopology>('countries-110m.json'),
     fetchJson<Credit[]>('photos.json'),
   ]);
   const earth = earthFromTopology(topology);
+  const { user } = userStore.get();
+  // logged out it is the demo traveller, read-only; logged in it is the owner's own archive
+  const repo = user ? localRepository(credits) : demoRepository(credits);
+  const archive = linkArchive(await repo.load());
+  setSource(archive, repo);
   return {
     earth,
     lights: buildLights(earth.land),
-    archive: linkArchive(buildDemo(credits)),
-    home: DEMO_HOME,
+    archive,
+    home: user?.home ?? DEMO_HOME,
     credits: new Map(credits.map((credit) => [credit.file, credit])),
   };
 };

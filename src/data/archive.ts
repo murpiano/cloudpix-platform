@@ -14,7 +14,7 @@ export interface Archive {
   albumById: ReadonlyMap<Id, Album>;
 }
 
-export const linkArchive = (data: ArchiveData): Archive => {
+const build = (data: ArchiveData): Archive => {
   const countries = data.countries.map((countryData) => {
     const country: Country = { id: countryData.id, name: countryData.name, cities: [] };
     country.cities = countryData.cities.map((cityData) => {
@@ -39,6 +39,15 @@ export const linkArchive = (data: ArchiveData): Archive => {
     albumById: new Map(albums.map((album) => [album.id, album])),
   };
 };
+
+export const linkArchive = (data: ArchiveData): Archive => build(data);
+
+/**
+ * Rebuilds the graph inside the archive that is already there. The director and the engine hold
+ * this object and read it every frame, so an edit must not hand them a new one.
+ */
+export const relinkInto = (archive: Archive, data: ArchiveData): Archive =>
+  Object.assign(archive, build(data));
 
 export const photoTotal = (city: City): number =>
   city.albums.reduce((sum, album) => sum + album.photoCount, 0);

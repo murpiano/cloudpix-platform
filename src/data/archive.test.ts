@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { linkArchive, photoTotal, visitYears } from './archive';
+import { linkArchive, photoTotal, relinkInto, visitYears } from './archive';
 import type { AlbumData, ArchiveData } from './types';
 
 const album = (id: string, year: number, month: number, photoCount: number): AlbumData => ({
@@ -72,5 +72,18 @@ describe('city helpers', () => {
 
   it('lists the years of visits once each, in order', () => {
     expect(madrid && visitYears(madrid)).toEqual([2021, 2024]);
+  });
+});
+
+describe('relinkInto', () => {
+  it('rebuilds the graph in the same object, so everything holding it sees the change', () => {
+    const own = structuredClone(data);
+    const archive = linkArchive(own);
+    const before = archive.albums.length;
+    own.countries[0]?.cities[0]?.albums.push(album('new', 2030, 1, 0));
+    const same = relinkInto(archive, own);
+    expect(same).toBe(archive);
+    expect(archive.albums).toHaveLength(before + 1);
+    expect(archive.albumById.get('new')?.title).toBe('new');
   });
 });
