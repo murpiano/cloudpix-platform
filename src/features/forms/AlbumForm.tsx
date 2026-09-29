@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { World } from '@/app/boot';
 import { addAlbum, addPhotos, deleteAlbum, freshId, updateAlbum } from '@/data/edits';
-import { shrink } from '@/data/image';
+import { shrinkAll } from '@/data/image';
 import type { PickedPlace } from '@/data/places';
 import type { PhotoRef } from '@/data/types';
 import { editArchive } from '@/state/owner';
@@ -55,6 +55,7 @@ export function AlbumForm({
   );
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [trouble, setTrouble] = useState<string | null>(null);
 
   const when = parseDate(date);
   const ready = Boolean(title.trim() && place && when) && !busy;
@@ -62,6 +63,7 @@ export function AlbumForm({
   const submit = async () => {
     if (!place || !when) return;
     setBusy(true);
+    setTrouble(null);
     const fields = {
       title: title.trim(),
       ...when,
@@ -69,17 +71,32 @@ export function AlbumForm({
       place,
       tripId: trip || null,
     };
-    await editArchive(async (data, repo) => {
-      if (album) {
-        updateAlbum(data, album.id, fields);
-        return;
-      }
-      const made = addAlbum(data, freshId('a'), fields);
-      // the files are made smaller and kept before the album is saved
-      const refs: PhotoRef[] = [];
-      for (const file of files) refs.push(await repo.addPhoto(await shrink(file), file.name));
-      addPhotos(data, made.id, refs);
-    });
+    let lost: string[] = [];
+    try {
+      await editArchive(async (data, repo) => {
+        if (album) {
+          updateAlbum(data, album.id, fields);
+          return;
+        }
+        const made = addAlbum(data, freshId('a'), fields);
+        // the files are made smaller and kept before the album is saved
+        const { ready, skipped } = await shrinkAll(files);
+        lost = skipped;
+        const refs: PhotoRef[] = [];
+        for (const one of ready) refs.push(await repo.addPhoto(one.blob, one.name));
+        addPhotos(data, made.id, refs);
+      });
+    } catch {
+      // storage said no: the sheet stays open with what was typed still in it
+      setBusy(false);
+      setTrouble('The album could not be saved. Your browser may be out of room for photos.');
+      return;
+    }
+    if (lost.length > 0) {
+      setBusy(false);
+      setTrouble(`The album is there, but ${lost.join(', ')} could not be read as an image.`);
+      return;
+    }
     onClose();
   };
 
@@ -168,6 +185,7 @@ export function AlbumForm({
           {busy ? 'Saving…' : album ? 'Save' : 'Create album'}
         </button>
       </Acts>
+      {trouble && <p className="sheet__note">{trouble}</p>}
     </Sheet>
   );
 }

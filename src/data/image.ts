@@ -14,3 +14,28 @@ export const shrink = async (file: Blob): Promise<Blob> => {
     canvas.toBlob((blob) => ok(blob ?? file), 'image/jpeg', QUALITY);
   });
 };
+
+export interface ReadyPhoto {
+  blob: Blob;
+  name: string;
+}
+
+/**
+ * Makes every file smaller, one by one. A file the browser cannot decode is named in `skipped`
+ * instead of throwing: one bad file must not lose the album that is being made with it.
+ */
+export const shrinkAll = async (
+  files: File[],
+  smaller: (blob: Blob, name: string) => Promise<Blob> = (blob) => shrink(blob),
+): Promise<{ ready: ReadyPhoto[]; skipped: string[] }> => {
+  const ready: ReadyPhoto[] = [];
+  const skipped: string[] = [];
+  for (const file of files) {
+    try {
+      ready.push({ blob: await smaller(file, file.name), name: file.name });
+    } catch {
+      skipped.push(file.name);
+    }
+  }
+  return { ready, skipped };
+};

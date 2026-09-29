@@ -4,7 +4,7 @@ import { albumsByYear, coverOf, dateSpan, findPage, folderPhotos, plural, whenLa
 import type { Journey, PageData } from '@/archive/pages';
 import { visitYears } from '@/data/archive';
 import { addPhotos } from '@/data/edits';
-import { shrink } from '@/data/image';
+import { shrinkAll } from '@/data/image';
 import { cityPhotos, photoUrl } from '@/data/photos';
 import { describeAlbum, photoKey, photoNote } from '@/data/social';
 import type { Album, City, Country, PhotoRef } from '@/data/types';
@@ -384,8 +384,10 @@ function PhotoGrid({ album, owner }: { album: Album; owner: boolean }) {
   useStore(socialStore, (s) => s.byKey);
   const add = (files: File[]) => {
     void editArchive(async (data, repo) => {
+      // a file the browser cannot read is left out; the others still arrive
+      const { ready } = await shrinkAll(files);
       const refs: PhotoRef[] = [];
-      for (const file of files) refs.push(await repo.addPhoto(await shrink(file), file.name));
+      for (const one of ready) refs.push(await repo.addPhoto(one.blob, one.name));
       addPhotos(data, album.id, refs);
     });
   };
