@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A photo archive on a draggable 3D sphere. Browse, sort and publish frames with in-browser effects.",
+  "description": "A personal travel archive on a night globe: places, albums, and a plane that flies the trips in order.",
   "author": "Bogdan Trotsenko <https://github.com/murpiano>",
   "license": "MIT",
   "homepage": "https://murpiano.github.io/cloudpix-platform/",
@@ -26,8 +26,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/d3-geo": "^3.1.1",
+    "@types/geojson": "^7946.0.16",
     "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
     "prettier": "^3.9.9",
     "sass": "^1.105.0",
@@ -35,5 +43,11 @@
     "typescript-eslint": "^8.70.1",
     "vite": "^8.3.1",
     "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "topojson-client": "^3.1.0"
   }
 }

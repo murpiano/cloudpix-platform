@@ -1,48 +1,17 @@
 :root {
-  --color-bg: #000000;
-  --color-surface: #050505;
-  --color-surface-raised: #0b0b0b;
-  --color-border: rgb(244 242 239 / 12%);
-  --color-border-strong: rgb(244 242 239 / 28%);
+  --sky: #04060d;
+  --lamp: #ffc86b;
+  --star: #8fb8ff;
+  --text: #e8ecf6;
+  --muted: #7f89a3;
 
-  --color-accent: #f4f2ef;
-  --color-accent-soft: rgb(244 242 239 / 14%);
-  --color-positive: #9fc3a8;
-  --color-negative: #d99a92;
-  --color-red: #e2504f;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  --color-text-primary: #f4f2ef;
-  --color-text-secondary: rgb(244 242 239 / 72%);
-  --color-text-muted: #8c8783;
-
-  --border-width-s: 1px;
-
-  --border-radius-xs: 2px;
-  --border-radius-s: 3px;
-  --border-radius-m: 6px;
-  --border-radius-pill: 999px;
-
-  --font-family-display: 'Playfair Display', 'Times New Roman', serif;
-  --font-family-base:
-    'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', helvetica, arial, sans-serif;
-
-  --container-width: #{fluid-to-laptop($container-desktop-width, $container-laptop-width)};
-  --container-padding-x: 16px;
-
-  --pad: clamp(14px, 2.6vw, 34px);
-  --tap: 44px;
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --headline-width: min(56vw, 640px);
-  --persp: 1150px;
+  --font-family-base: 'Space Grotesk', -apple-system, 'Segoe UI', helvetica, arial, sans-serif;
+  --font-family-display: 'Fraunces', georgia, serif;
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
-
-  --transition-duration: 0.2s;
-
-  @include mobile-s {
-    --pad: clamp(12px, 4vw, 18px);
-  }
 }
