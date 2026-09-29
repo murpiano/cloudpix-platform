@@ -112,17 +112,6 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
         ✕
       </button>
 
-      <aside className="lightbox__info">
-        <div className="lightbox__country">{album.city.country.name}</div>
-        <div className="lightbox__city">{album.city.name}</div>
-        <div className="lightbox__album">{album.title}</div>
-        <div className="lightbox__date">
-          {monthYear(album)} · {album.photoCount} photos
-        </div>
-        <p className="lightbox__note">{current ? photoNote(current) : ''}</p>
-        <p className="lightbox__desc">{describeAlbum(album)}</p>
-        <p className="lightbox__credit">{current ? creditLine(current, album.city, world.credits) : ''}</p>
-      </aside>
 
       <div
         ref={stage}
@@ -217,29 +206,42 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
         </div>
       </div>
 
-      <aside className="lightbox__social">
-        <button
-          type="button"
-          className={`lightbox__like${social.liked ? ' is-on' : ''}`}
-          aria-pressed={social.liked}
-          onClick={() => likePhoto(key)}
-        >
-          <i>♥</i>
-          <span>{social.likes.toLocaleString('en')}</span>
-        </button>
-        <h4>Comments · {social.comments.length}</h4>
-        <div className="lightbox__comments">
-          {social.comments.map((comment, i) => (
-            <div key={i} className="lightbox__comment">
-              <b>{comment.who}</b>
-              <small>{comment.when}</small>
-              <p>{comment.text}</p>
-            </div>
-          ))}
-        </div>
-        <CommentForm onSend={(text) => commentPhoto(key, text)} />
-        <div className="lightbox__demo">Demo: comments are not saved yet.</div>
-      </aside>
+      <div className="lightbox__scroll">
+        <aside className="lightbox__info">
+          <div className="lightbox__country">{album.city.country.name}</div>
+          <div className="lightbox__city">{album.city.name}</div>
+          <div className="lightbox__album">{album.title}</div>
+          <div className="lightbox__date">
+            {monthYear(album)} · {album.photoCount} photos
+          </div>
+          <p className="lightbox__note">{current ? photoNote(current) : ''}</p>
+          <p className="lightbox__desc">{describeAlbum(album)}</p>
+          <p className="lightbox__credit">{current ? creditLine(current, album.city, world.credits) : ''}</p>
+        </aside>
+        <aside className="lightbox__social">
+          <button
+            type="button"
+            className={`lightbox__like${social.liked ? ' is-on' : ''}`}
+            aria-pressed={social.liked}
+            onClick={() => likePhoto(key)}
+          >
+            <i>♥</i>
+            <span>{social.likes.toLocaleString('en')}</span>
+          </button>
+          <h4>Comments · {social.comments.length}</h4>
+          <div className="lightbox__comments">
+            {social.comments.map((comment, i) => (
+              <div key={i} className="lightbox__comment">
+                <b>{comment.who}</b>
+                <small>{comment.when}</small>
+                <p>{comment.text}</p>
+              </div>
+            ))}
+          </div>
+          <CommentForm onSend={(text) => commentPhoto(key, text)} />
+          <div className="lightbox__demo">Demo: comments are not saved yet.</div>
+        </aside>
+      </div>
     </div>
   );
 }

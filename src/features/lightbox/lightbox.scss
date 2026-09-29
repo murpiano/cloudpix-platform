@@ -4,6 +4,7 @@
   z-index: 29;
   display: grid;
   grid-template-columns: minmax(220px, 280px) 1fr minmax(260px, 340px);
+  grid-template-areas: 'info stage social';
   gap: 32px;
   padding: 34px 32px 30px;
   background: rgb(4 6 13 / 96%);
@@ -29,6 +30,19 @@
     &:hover {
       border-color: rgb(255 200 107 / 60%);
     }
+  }
+
+  // the text columns sit in the grid on a wide screen, and scroll under the photo on a phone
+  &__scroll {
+    display: contents;
+  }
+
+  &__info {
+    grid-area: info;
+  }
+
+  &__social {
+    grid-area: social;
   }
 
   &__info,
@@ -104,6 +118,7 @@
   }
 
   &__stage {
+    grid-area: stage;
     position: relative;
     min-height: 0;
     margin-bottom: 50px;
@@ -323,23 +338,34 @@
   @include mobile {
     grid-template-rows: 44vh 1fr;
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'stage'
+      'rest';
     gap: 14px;
     padding: 64px 12px 12px;
-    overflow-y: auto;
 
     &__stage {
-      grid-row: 1;
       margin-bottom: 44px;
     }
 
-    &__info {
-      grid-row: 2;
+    &__scroll {
+      display: block;
+      grid-area: rest;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    &__info,
+    &__social {
       padding-top: 0;
     }
 
     &__social {
-      grid-row: 3;
-      padding-top: 0;
+      margin-top: 24px;
+    }
+
+    &__comments {
+      overflow: visible;
     }
 
     &__close {

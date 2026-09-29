@@ -13,7 +13,12 @@ export const useKeys = (director: Director, archive: Archive): void => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest('input, textarea, select')) return;
+      const field = target?.closest('input, textarea, select');
+      if (field) {
+        // Esc first lets go of the field being typed in; the next one closes the layer
+        if (event.key === 'Escape' && field instanceof HTMLElement) field.blur();
+        return;
+      }
       const state = appStore.get();
 
       if (event.key === 'Escape') {
@@ -29,7 +34,7 @@ export const useKeys = (director: Director, archive: Archive): void => {
         if (event.key === 'ArrowRight') stepPhoto(appStore, count, 1);
         else if (event.key === 'ArrowLeft') stepPhoto(appStore, count, -1);
         else if (event.key === ' ') {
-          if (target?.closest('button')) return;
+          // Space is the slideshow here, even when an arrow button kept the focus after a click
           event.preventDefault();
           toggleSlideshow(appStore);
         }
