@@ -139,13 +139,23 @@ const COUNTRIES: RawCountry[] = [
         lon: 20.51,
         albums: [['Amber coast', 2020, 4, 15]],
       },
+      {
+        name: 'Sevastopol',
+        key: 'sevastopol',
+        lat: 44.62,
+        lon: 33.53,
+        albums: [['Bays of Sevastopol', 2016, 9, 5]],
+      },
     ],
   },
 ];
 
 /** The demo trips: a name and the titles of the albums it ties together. */
 const TRIPS: [name: string, albumTitles: string[]][] = [
-  ['Mediterranean autumn', ['Acropolis at sunrise', 'Honey-coloured Valletta', 'Tram 28 and tiles']],
+  [
+    'Mediterranean autumn',
+    ['Bays of Sevastopol', 'Acropolis at sunrise', 'Honey-coloured Valletta', 'Tram 28 and tiles'],
+  ],
   [
     'South America and the ice',
     [

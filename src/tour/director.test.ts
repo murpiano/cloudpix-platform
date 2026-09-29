@@ -306,6 +306,27 @@ describe('tours', () => {
   });
 });
 
+describe('playing everything with no tour', () => {
+  it('flies home after each trip, and does not count it as a tour that ended', () => {
+    const { director, run, state } = setup();
+    const homes: (string | undefined)[] = [];
+    director.play();
+    let had = false;
+    for (let t = 0; t < 400000; t += 20) {
+      run(20);
+      const card = state().endCard;
+      if (card && !had) homes.push(archive.albums[state().focus]?.title);
+      had = card !== null;
+      if (t > 1000 && !state().playing && !state().flying) break;
+    }
+    expect(homes).toEqual(['Tram 28 and tiles', 'Amber coast']);
+    expect(state().atHome).toBe(true);
+    expect(state().endCard?.home).toBe(true);
+    expect(state().playing).toBe(false);
+    expect(state().tourDone).toBe(0);
+  });
+});
+
 describe('after the owner has changed the archive', () => {
   const PORTO = { name: 'Porto', country: 'Portugal', countryId: '620', lat: 41.15, lon: -8.61 };
 

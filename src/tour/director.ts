@@ -20,7 +20,15 @@ import {
   stepFlight,
 } from './flight';
 import type { Flight } from './flight';
-import { cityAlbums, nextInRange, nextStep, scopedAlbums, tripTour, yearTour } from './tour';
+import {
+  cityAlbums,
+  nextInRange,
+  nextStep,
+  scopedAlbums,
+  tripBreak,
+  tripTour,
+  yearTour,
+} from './tour';
 
 export interface Pace {
   photoMs: number;
@@ -97,6 +105,8 @@ interface Leg {
   fromHome: boolean;
   /** Sent away by a range its place is not in: it climbs into space instead of landing. */
   escaping: boolean;
+  /** Home between two trips of a range played with no tour: no tour ends, the play goes on. */
+  onward: boolean;
 }
 
 /**
@@ -161,7 +171,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const fromHome = leg === null && from !== null && geoDistance(from, homeAt) < 1e-4;
     origin = null;
     const flight = createFlight({ from, to: at(album.city), rot });
-    leg = { flight, city: album.city, end: null, fromHome, escaping: false };
+    leg = { flight, city: album.city, end: null, fromHome, escaping: false, onward: false };
     set({
       focus: index,
       atHome: false,
@@ -179,7 +189,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
   };
 
   /** The last leg of a trip: to its end, home or another city, with the end card in the panel. */
-  const flyEnd = (end: Endpoint) => {
+  const flyEnd = (end: Endpoint, onward = false) => {
     const { focus, tour } = get();
     const last = albums[focus];
     if (!last) {
@@ -189,7 +199,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     }
     const place = endpointPlace(end, archive, home);
     const flight = createFlight({ from: at(last.city), to: [place.lon, place.lat], rot });
-    leg = { flight, city: null, end, fromHome: false, escaping: false };
+    leg = { flight, city: null, end, fromHome: false, escaping: false, onward };
     set({
       flying: true,
       flightKm: flight.km > 0 ? flight.km : null,
@@ -203,7 +213,13 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const { playing, tour, focus, range } = get();
     if (!playing) return;
     const step = nextStep(tour, focus, times, range);
-    if (step.kind === 'album') go(step.index);
+    // a range played with no tour still comes home at the end of each trip
+    const home =
+      tour || get().endCard
+        ? null
+        : tripBreak(archive, focus, step.kind === 'album' ? step.index : null);
+    if (home) flyEnd(home, step.kind === 'album');
+    else if (step.kind === 'album') go(step.index);
     else if (step.kind === 'end') flyEnd(step.end);
     else if (tour) {
       // a year ends at its last album: the tour ended by itself
@@ -225,10 +241,13 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
       if (card?.cityKey) pulseAt.set(card.cityKey, now);
       else homePulseAt = now;
       patch.atHome = card?.home ?? true;
-      patch.tour = null;
-      patch.playing = false;
-      patch.tourDone = get().tourDone + 1;
-      dwell = 0;
+      if (!done.onward) {
+        patch.tour = null;
+        patch.playing = false;
+        // only a tour that ended by itself counts; the last trip of a range just stops
+        if (get().tour) patch.tourDone = get().tourDone + 1;
+        dwell = 0;
+      }
     }
     set(patch);
     if (get().playing) dwell = dwellMs();

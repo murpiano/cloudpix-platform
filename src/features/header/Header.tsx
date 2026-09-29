@@ -98,6 +98,8 @@ function NavMenu({ world }: { world: World | null }) {
           Log in
         </button>
         <p>You are watching a demo traveller. Log in to keep your own trips, albums and photos.</p>
+        <hr />
+        <AboutItem />
       </>
     );
   }
@@ -124,6 +126,7 @@ function NavMenu({ world }: { world: World | null }) {
         <small>email, password, home</small>
       </button>
       <hr />
+      <AboutItem />
       <button
         type="button"
         className="header__item"
@@ -135,6 +138,19 @@ function NavMenu({ world }: { world: World | null }) {
         <span>Log out</span>
       </button>
     </>
+  );
+}
+
+function AboutItem() {
+  return (
+    <button
+      type="button"
+      className="header__item"
+      onClick={() => openForm(appStore, { kind: 'about' })}
+    >
+      <span>About</span>
+      <small>author, license, privacy</small>
+    </button>
   );
 }
 

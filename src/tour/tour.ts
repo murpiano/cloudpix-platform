@@ -1,4 +1,5 @@
 import type { Archive } from '@/data/archive';
+import { tripOfAlbum } from '@/data/trips';
 import type { Endpoint, Trip } from '@/data/types';
 import { within } from '@/timeline/range';
 import type { Range } from '@/timeline/range';
@@ -45,6 +46,23 @@ export const nextStep = (
   }
   const index = nextInRange(focus, 1, times, range);
   return index < 0 ? { kind: 'stop' } : { kind: 'album', index };
+};
+
+/**
+ * Where the traveller goes home between albums that are played through with no tour: when the next
+ * album belongs to another trip, or when the range ends on the last album of a trip. Null when the
+ * trip goes on, or the album is in no trip.
+ */
+export const tripBreak = (archive: Archive, from: number, to: number | null): Endpoint | null => {
+  const album = archive.albums[from];
+  const trip = album ? tripOfAlbum(archive, album.id) : undefined;
+  if (!trip) return null;
+  if (to === null) {
+    const list = tripTour(trip, archive)?.list ?? [];
+    return list[list.length - 1] === from ? trip.end : null;
+  }
+  const next = archive.albums[to];
+  return next && trip.albumIds.includes(next.id) ? null : trip.end;
 };
 
 /** The albums of a city, oldest first. */

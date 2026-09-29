@@ -47,7 +47,7 @@ describe('journeys', () => {
     expect(list[0]?.name).toBe('Someday');
     const own = list.find((j) => !j.real && j.name === 'Athens 2016');
     expect(own?.albums.map((a) => a.title)).toEqual(['Acropolis at sunrise']);
-    expect(list.filter((j) => !j.real)).toHaveLength(3);
+    expect(list.filter((j) => !j.real)).toHaveLength(4);
   });
 
   it('finds the trip of an album', () => {
@@ -103,7 +103,7 @@ describe('groups and photos', () => {
   it('groups albums by year, latest first, each year by date', () => {
     const groups = albumsByYear(archive.albums);
     expect(groups.map((g) => g.year)).toEqual([2020, 2019, 2016]);
-    expect(groups.map((g) => g.albums.length)).toEqual([5, 2, 3]);
+    expect(groups.map((g) => g.albums.length)).toEqual([5, 2, 4]);
   });
 
   it('puts up to three photos in a folder, none for an empty album', () => {

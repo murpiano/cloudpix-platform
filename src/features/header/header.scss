@@ -311,3 +311,13 @@
     }
   }
 }
+
+// while the splash has the name, the header's own waits, then fades in as the splash's lands
+.header__brand {
+  transition: opacity 0.5s ease;
+}
+
+:root[data-splash] .header__brand {
+  opacity: 0;
+  transition: none;
+}

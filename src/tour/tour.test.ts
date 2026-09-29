@@ -5,7 +5,15 @@ import { linkArchive } from '@/data/archive';
 import { buildDemo } from '@/data/demo';
 import type { Credit } from '@/data/types';
 import { albumTime, yearRange } from '@/timeline/range';
-import { cityAlbums, nextInRange, nextStep, scopedAlbums, tripTour, yearTour } from './tour';
+import {
+  cityAlbums,
+  nextInRange,
+  nextStep,
+  scopedAlbums,
+  tripBreak,
+  tripTour,
+  yearTour,
+} from './tour';
 
 const file = fileURLToPath(new URL('../../public/demo/photos.json', import.meta.url));
 const archive = linkArchive(buildDemo(JSON.parse(readFileSync(file, 'utf8')) as Credit[]));
@@ -76,6 +84,30 @@ describe('nextStep', () => {
     const inRange = times.flatMap((t, i) => (t >= 2019 && t < 2020 ? [i] : []));
     expect(nextInRange(inRange[1] ?? -1, -1, times, range)).toBe(inRange[0]);
     expect(nextInRange(inRange[0] ?? -1, -1, times, range)).toBe(-1);
+  });
+});
+
+describe('tripBreak', () => {
+  const at = (title: string) => archive.albums.findIndex((album) => album.title === title);
+
+  it('sends the traveller home between two trips', () => {
+    expect(tripBreak(archive, at('Tram 28 and tiles'), at('Christ over the clouds'))).toEqual({
+      home: true,
+    });
+  });
+
+  it('keeps going inside one trip', () => {
+    expect(tripBreak(archive, at('Bays of Sevastopol'), at('Acropolis at sunrise'))).toBeNull();
+    expect(tripBreak(archive, at('Rambla at dusk'), at('The end of the world'))).toBeNull();
+  });
+
+  it('sends the traveller home when the range ends on the last album of a trip only', () => {
+    expect(tripBreak(archive, at('Amber coast'), null)).toEqual({ home: true });
+    expect(tripBreak(archive, at('Acropolis at sunrise'), null)).toBeNull();
+  });
+
+  it('has nothing to say for an album that is in no trip', () => {
+    expect(tripBreak(archive, -1, 0)).toBeNull();
   });
 });
 

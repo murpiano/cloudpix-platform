@@ -14,8 +14,8 @@ const albums = cities.flatMap((city) => city.albums);
 describe('demo archive', () => {
   it('has the size the design promises', () => {
     expect(demo.countries).toHaveLength(8);
-    expect(cities).toHaveLength(8);
-    expect(albums).toHaveLength(10);
+    expect(cities).toHaveLength(9);
+    expect(albums).toHaveLength(11);
     expect(demo.trips).toHaveLength(2);
   });
 
@@ -82,7 +82,7 @@ describe('demo archive', () => {
         .filter((album) => album !== undefined)
         .sort((a, b) => a.year - b.year || a.month - b.month || a.day - b.day)
         .map((album) => cityOfAlbum.get(album.id));
-    expect(route(0)).toEqual(['athens', 'valletta', 'lisbon']);
+    expect(route(0)).toEqual(['sevastopol', 'athens', 'valletta', 'lisbon']);
     expect(route(1)).toEqual([
       'rio-de-janeiro',
       'montevideo',

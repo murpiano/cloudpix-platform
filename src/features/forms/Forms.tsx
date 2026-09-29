@@ -2,6 +2,7 @@ import type { World } from '@/app/boot';
 import { appStore } from '@/state/app-state';
 import { closeForm } from '@/state/layers';
 import { useStore } from '@/state/store';
+import { AboutForm } from './AboutForm';
 import { AccountForm } from './AccountForm';
 import { AlbumForm } from './AlbumForm';
 import { LoginForm } from './LoginForm';
@@ -19,6 +20,8 @@ export function Forms({ world }: { world: World }) {
       return <LoginForm archive={world.archive} why={form.why} onClose={close} />;
     case 'account':
       return <AccountForm archive={world.archive} onClose={close} />;
+    case 'about':
+      return <AboutForm onClose={close} />;
     case 'trip':
       return <TripForm world={world} id={form.id} albumIds={form.albumIds} onClose={close} />;
     case 'album':

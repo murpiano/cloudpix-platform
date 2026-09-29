@@ -50,6 +50,7 @@ export type ArchivePage =
 export type FormView =
   | { kind: 'login'; why: string | null }
   | { kind: 'account' }
+  | { kind: 'about' }
   | { kind: 'trip'; id: string | null; albumIds: string[] }
   | { kind: 'album'; id: string | null; cityKey: string | null; tripId: string | null }
   | { kind: 'photo'; albumId: string; photoKey: string };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Header } from '@/features/header/Header';
 import { loadWorld } from './boot';
 import type { World } from './boot';
@@ -10,6 +10,9 @@ type Boot = { status: 'loading' } | { status: 'ready'; world: World } | { status
 
 export function App() {
   const [boot, setBoot] = useState<Boot>({ status: 'loading' });
+  // the world is built only once the splash lets it in, so building it cannot make the intro stutter
+  const [stageUp, setStageUp] = useState(false);
+  const letIn = useCallback(() => setStageUp(true), []);
 
   useEffect(() => {
     let live = true;
@@ -29,8 +32,8 @@ export function App() {
 
   return (
     <>
-      {boot.status === 'ready' && <Stage world={boot.world} />}
-      {boot.status !== 'failed' && <Splash ready={boot.status === 'ready'} />}
+      {boot.status === 'ready' && stageUp && <Stage world={boot.world} />}
+      {boot.status !== 'failed' && <Splash ready={boot.status === 'ready'} onRelease={letIn} />}
       {boot.status === 'failed' && (
         <div className="boot" role="alert">
           <p>The map did not load.</p>
