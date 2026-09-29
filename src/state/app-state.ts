@@ -11,6 +11,28 @@ export interface EndCard {
   tour: Tour | null;
 }
 
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** The photo window: which photo of which album, and how it got there. */
+export interface PhotoView {
+  albumId: string;
+  index: number;
+  /** The photo it came from, sliding away under the new one. */
+  previous: number | null;
+  /** The side the photo came from: 1 next, -1 previous, 0 opened. */
+  dir: -1 | 0 | 1;
+  /** Where it was clicked, to grow out of it. */
+  from: Rect | null;
+  slideshow: boolean;
+  /** Flying back into its tile; the window goes when the flight ends. */
+  closing: boolean;
+}
+
 export interface AppState {
   /**
    * The city the hover label shows. It keeps the last city after the cursor leaves, so the label
@@ -37,6 +59,10 @@ export interface AppState {
   tour: Tour | null;
   /** The tour that just ended, still shown above the end card. */
   lastTour: Tour | null;
+  /** The photo window, open over everything. */
+  photo: PhotoView | null;
+  /** The burger menu or the settings, open under the header. */
+  menu: 'nav' | 'settings' | null;
 }
 
 export const INITIAL_STATE: AppState = {
@@ -53,6 +79,8 @@ export const INITIAL_STATE: AppState = {
   playing: false,
   tour: null,
   lastTour: null,
+  photo: null,
+  menu: null,
 };
 
 export const appStore = createStore<AppState>({ ...INITIAL_STATE });
