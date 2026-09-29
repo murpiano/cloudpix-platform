@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GlobeStage } from '@/features/globe/GlobeStage';
 import { useKeys } from '@/features/keys/useKeys';
+import { Timeline } from '@/features/timeline/Timeline';
 import { appStore } from '@/state/app-state';
 import { settingsStore } from '@/state/settings';
 import { createDirector } from '@/tour/director';
@@ -25,6 +26,7 @@ export function Stage({ world }: { world: World }) {
   return (
     <DirectorContext value={director}>
       <GlobeStage world={world} director={director} />
+      <Timeline archive={world.archive} />
     </DirectorContext>
   );
 }
