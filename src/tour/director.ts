@@ -10,7 +10,15 @@ import type { PlaceFacts } from '@/render/places';
 import type { AppState } from '@/state/app-state';
 import type { Store } from '@/state/store';
 import { albumTime, isReached, pickedRange, span, within, yearRange } from '@/timeline/range';
-import { beginEscape, createFlight, planeAlpha, planeLift, riseZoom, stepFlight } from './flight';
+import {
+  beginEscape,
+  createFlight,
+  planeAlpha,
+  planeLift,
+  planeTurn,
+  riseZoom,
+  stepFlight,
+} from './flight';
 import type { Flight } from './flight';
 import { cityAlbums, nextInRange, nextStep, scopedAlbums, tripTour, yearTour } from './tour';
 
@@ -48,6 +56,8 @@ export interface PlaneView {
   alpha: number;
   /** 0 in flight; 0..1 while it climbs away into space. */
   lift: number;
+  /** 0 in flight; 0..1 as the nose comes round to point up before the climb. */
+  turn: number;
 }
 
 /** Everything the engine draws from the journey. */
@@ -318,6 +328,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
             ahead: flight.path(Math.min(1, flight.e + 0.003)),
             alpha: planeAlpha(flight),
             lift: planeLift(flight),
+            turn: planeTurn(flight),
           }
         : null;
 

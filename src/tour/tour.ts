@@ -16,9 +16,7 @@ export interface Tour {
 }
 
 export type TourStep =
-  | { kind: 'album'; index: number }
-  | { kind: 'end'; end: Endpoint }
-  | { kind: 'stop' };
+  { kind: 'album'; index: number } | { kind: 'end'; end: Endpoint } | { kind: 'stop' };
 
 export const nextInRange = (
   from: number,

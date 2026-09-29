@@ -12,7 +12,7 @@ import type { AppState } from '@/state/app-state';
 import { createStore } from '@/state/store';
 import { albumTime } from '@/timeline/range';
 import { createDirector, DWELL_MIN_MS, placeFacts } from './director';
-import { APPEAR_MS, ESCAPE_MS, VANISH_MS } from './flight';
+import { APPEAR_MS, ESCAPE_MS, ESCAPE_TURN_MS, VANISH_MS } from './flight';
 
 const file = fileURLToPath(new URL('../../public/demo/photos.json', import.meta.url));
 const credits = JSON.parse(readFileSync(file, 'utf8')) as Credit[];
@@ -37,7 +37,8 @@ const setup = () => {
       const before = store.get().focus;
       const drive = director.step(20, rot, 1);
       if (drive.rot) rot = drive.rot;
-      if (store.get().focus !== before) changes.push({ focus: store.get().focus, flying: store.get().flying });
+      if (store.get().focus !== before)
+        changes.push({ focus: store.get().focus, flying: store.get().flying });
     }
   };
   const state = () => store.get();
@@ -362,9 +363,11 @@ describe('choosing a range while the plane is in the air', () => {
     const other = parisYear() === 2023 ? 2021 : 2023;
     expect(director.clickYear(other)).toBe('ok');
     run(120);
-    const plane = director.view().plane;
-    expect(plane?.lift).toBeGreaterThan(0);
-    run(300);
+    // first it turns its nose up where it is: the turn has begun, the climb has not
+    expect(director.view().plane?.turn).toBeGreaterThan(0);
+    expect(director.view().plane?.lift).toBe(0);
+    run(ESCAPE_TURN_MS + 300);
+    expect(director.view().plane?.lift).toBeGreaterThan(0);
     expect(director.view().leg?.alpha ?? 0).toBeLessThan(0.2);
     run(ESCAPE_MS);
     expect(director.view().plane).toBeNull();

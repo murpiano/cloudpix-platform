@@ -10,10 +10,13 @@ import { clamp } from '@/lib/math';
 export const APPEAR_MS = 700;
 /** It stops and fades out before the place lights up. */
 export const VANISH_MS = 380;
-/** A plane sent away climbs into space and dissolves over this time. */
-export const ESCAPE_MS = 1600;
+/** A plane sent away first turns its nose up on the spot for this long... */
+export const ESCAPE_TURN_MS = 600;
+/** ...and then climbs into space and dissolves; the whole escape takes this long. */
+export const ESCAPE_MS = 2200;
 /** It keeps its shape for this share of the climb, then dissolves. */
 const ESCAPE_SOLID = 0.35;
+const CLIMB_MS = ESCAPE_MS - ESCAPE_TURN_MS;
 export const EARTH_KM = 6371;
 
 export type FlightPhase = 'appear' | 'cruise' | 'vanish' | 'escape' | 'done';
@@ -122,31 +125,35 @@ export const planeAlpha = ({ phase, phaseMs }: Flight): number => {
   if (phase === 'appear') return smooth(clamp(phaseMs / APPEAR_MS, 0, 1));
   if (phase === 'vanish') return 1 - smooth(clamp(phaseMs / VANISH_MS, 0, 1));
   if (phase === 'escape') {
-    return 1 - smooth(clamp((phaseMs / ESCAPE_MS - ESCAPE_SOLID) / (1 - ESCAPE_SOLID), 0, 1));
+    const climb = clamp((phaseMs - ESCAPE_TURN_MS) / CLIMB_MS, 0, 1);
+    return 1 - smooth(clamp((climb - ESCAPE_SOLID) / (1 - ESCAPE_SOLID), 0, 1));
   }
   if (phase === 'done') return 0;
   return 1;
 };
 
-/** 0 in flight; while it is sent away 0..1, slow at first and then faster and faster. */
+/** 0 in flight; while it is sent away 0..1, slow at first and then faster and faster. It starts after the turn. */
 export const planeLift = ({ phase, phaseMs }: Flight): number =>
-  phase === 'escape' ? clamp(phaseMs / ESCAPE_MS, 0, 1) ** 2 : phase === 'done' ? 1 : 0;
+  phase === 'escape'
+    ? clamp((phaseMs - ESCAPE_TURN_MS) / CLIMB_MS, 0, 1) ** 2
+    : phase === 'done'
+      ? 1
+      : 0;
+
+/** 0..1: how far the nose has come round to point up, over the first part of the escape. */
+export const planeTurn = ({ phase, phaseMs }: Flight): number =>
+  phase === 'escape' ? smooth(clamp(phaseMs / ESCAPE_TURN_MS, 0, 1)) : phase === 'done' ? 1 : 0;
 
 /** The camera rises mid-flight in proportion to the distance, and settles on arrival. */
 export const riseZoom = (z: number, { c, rise }: Flight): number =>
   Math.max(Z_MIN, z * (1 - 0.45 * Math.sin(Math.PI * c) * Math.min(1, rise / 1.4)));
 
-/** The nose is straight up by this share of the climb. */
-const NOSE_UP_BY = 0.3;
-
 /**
  * The heading of a plane that is being sent away: the nose comes round to point straight up the
- * screen over the first part of the climb, the short way, so it rises nose first instead of
- * sliding upwards sideways.
+ * screen as `turn` goes from 0 to 1, the short way, before it climbs.
  */
-export const climbAngle = (angle: number, lift: number): number => {
-  const share = smooth(clamp(lift / NOSE_UP_BY, 0, 1));
-  if (share === 0) return angle;
-  const turn = ((((-Math.PI / 2 - angle) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
-  return angle + turn * share;
+export const climbAngle = (angle: number, turn: number): number => {
+  if (turn <= 0) return angle;
+  const way = ((((-Math.PI / 2 - angle) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  return angle + way * turn;
 };

@@ -303,6 +303,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
           Math.atan2(q1[1] - q0[1], q1[0] - q0[0]),
           view.plane.alpha,
           view.plane.lift,
+          view.plane.turn,
         );
       }
     }

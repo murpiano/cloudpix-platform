@@ -8,8 +8,10 @@ import {
   cameraTurnMs,
   createFlight,
   ESCAPE_MS,
+  ESCAPE_TURN_MS,
   planeAlpha,
   planeLift,
+  planeTurn,
   riseZoom,
   stepFlight,
   VANISH_MS,
@@ -109,7 +111,7 @@ describe('an escape into space', () => {
     return flight;
   };
 
-  it('stops the plane where it is, lets go of the camera and starts to lift', () => {
+  it('stops the plane where it is and lets go of the camera', () => {
     const flight = cruising();
     const at = flight.e;
     beginEscape(flight);
@@ -117,20 +119,33 @@ describe('an escape into space', () => {
     expect(flight.follow).toBe(false);
     run(flight, ESCAPE_MS / 2);
     expect(flight.e).toBe(at);
-    expect(planeLift(flight)).toBeGreaterThan(0);
-    expect(planeLift(flight)).toBeLessThan(1);
   });
 
-  it('rises faster and faster, and dissolves before it is gone', () => {
+  it('first turns the nose up on the spot, and only then climbs', () => {
     const flight = cruising();
     beginEscape(flight);
-    run(flight, ESCAPE_MS * 0.25);
+    run(flight, ESCAPE_TURN_MS / 2);
+    expect(planeTurn(flight)).toBeGreaterThan(0);
+    expect(planeTurn(flight)).toBeLessThan(1);
+    expect(planeLift(flight)).toBe(0);
+    run(flight, ESCAPE_TURN_MS / 2 + 10);
+    expect(planeTurn(flight)).toBe(1);
+    expect(planeLift(flight)).toBeGreaterThanOrEqual(0);
+    run(flight, 200);
+    expect(planeLift(flight)).toBeGreaterThan(0);
+  });
+
+  it('climbs faster and faster, and dissolves before it is gone', () => {
+    const flight = cruising();
+    beginEscape(flight);
+    const climb = ESCAPE_MS - ESCAPE_TURN_MS;
+    run(flight, ESCAPE_TURN_MS + climb * 0.25);
     const early = planeLift(flight);
     expect(planeAlpha(flight)).toBe(1);
-    run(flight, ESCAPE_MS * 0.25);
+    run(flight, climb * 0.25);
     const middle = planeLift(flight);
     expect(middle - early).toBeGreaterThan(early);
-    run(flight, ESCAPE_MS * 0.4);
+    run(flight, climb * 0.4);
     expect(planeAlpha(flight)).toBeLessThan(0.5);
   });
 
@@ -142,8 +157,9 @@ describe('an escape into space', () => {
     expect(planeAlpha(flight)).toBe(0);
   });
 
-  it('does not lift an ordinary flight', () => {
+  it('does not turn or lift an ordinary flight', () => {
     expect(planeLift(cruising())).toBe(0);
+    expect(planeTurn(cruising())).toBe(0);
   });
 
   it('leaves a camera-only turn alone: there is no plane to send away', () => {
@@ -157,24 +173,23 @@ describe('climbAngle', () => {
   const UP = -Math.PI / 2; // straight up the screen, where y grows downwards
   const sameAngle = (a: number, b: number) => expect(Math.cos(a - b)).toBeCloseTo(1, 6);
 
-  it('leaves the heading alone while the plane is not lifting', () => {
+  it('leaves the heading alone before the turn starts', () => {
     expect(climbAngle(0.7, 0)).toBe(0.7);
   });
 
-  it('turns the nose to point straight up well before the plane is gone', () => {
-    sameAngle(climbAngle(0.7, 0.4), UP);
+  it('points straight up when the turn is done', () => {
+    sameAngle(climbAngle(0.7, 1), UP);
     sameAngle(climbAngle(3, 1), UP);
   });
 
-  it('turns part of the way in between', () => {
-    const half = climbAngle(0, 0.15);
+  it('is part of the way round in between', () => {
+    const half = climbAngle(0, 0.5);
     expect(half).toBeLessThan(0);
     expect(half).toBeGreaterThan(UP);
   });
 
   it('takes the short way round', () => {
     // heading left (π): up is a quarter turn one way, not three quarters the other
-    const partway = climbAngle(Math.PI, 0.1);
-    expect(partway).toBeGreaterThan(Math.PI);
+    expect(climbAngle(Math.PI, 0.2)).toBeGreaterThan(Math.PI);
   });
 });

@@ -29,7 +29,11 @@ describe('tours', () => {
 
   it('goes through a trip in date order and knows where it ends', () => {
     const tour = tripTour(tripNamed('Japan in bloom'), archive);
-    expect(titles(tour?.list ?? []).sort()).toEqual(['Bamboo grove', 'Neon and quiet', 'Sakura week']);
+    expect(titles(tour?.list ?? []).sort()).toEqual([
+      'Bamboo grove',
+      'Neon and quiet',
+      'Sakura week',
+    ]);
     expect(tour?.end).toEqual({ home: true });
     expect(tour?.tripId).toBe(tripNamed('Japan in bloom').id);
   });
