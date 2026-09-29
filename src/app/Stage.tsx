@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Archive } from '@/features/archive/Archive';
+import { useArchiveReturn } from '@/features/archive/useArchiveReturn';
 import { GlobeStage } from '@/features/globe/GlobeStage';
 import { useKeys } from '@/features/keys/useKeys';
 import { Lightbox } from '@/features/lightbox/Lightbox';
@@ -24,12 +26,14 @@ export function Stage({ world }: { world: World }) {
     }),
   );
   useKeys(director, world.archive);
+  useArchiveReturn();
 
   return (
     <DirectorContext value={director}>
       <GlobeStage world={world} director={director} />
       <AlbumPanel world={world} />
       <Timeline archive={world.archive} />
+      <Archive world={world} director={director} />
       <Lightbox world={world} />
     </DirectorContext>
   );

@@ -1,0 +1,370 @@
+import { Fragment, useEffect, useState } from 'react';
+import type { World } from '@/app/boot';
+import { albumsByYear, coverOf, dateSpan, findPage, folderPhotos, plural, whenLabel } from '@/archive/pages';
+import type { Journey, PageData } from '@/archive/pages';
+import { visitYears } from '@/data/archive';
+import { cityPhotos, photoUrl } from '@/data/photos';
+import { describeAlbum, photoKey, photoNote } from '@/data/social';
+import type { Album, City, Country, PhotoRef } from '@/data/types';
+import { MONTHS } from '@/lib/dates';
+import { appStore } from '@/state/app-state';
+import type { ArchivePage } from '@/state/app-state';
+import { backArchive, closeArchive, openArchive, SECTIONS, sectionOf } from '@/state/archive-nav';
+import { openPhoto } from '@/state/layers';
+import { socialFor, socialStore } from '@/state/social';
+import { useStore } from '@/state/store';
+import type { Director } from '@/tour/director';
+import { showOnMap } from './links';
+import './archive.scss';
+
+const go = (page: ArchivePage) => openArchive(appStore, page, false);
+
+/** The archive: a full-screen layer over the paused globe. */
+export function Archive({ world, director }: { world: World; director: Director }) {
+  const view = useStore(appStore, (s) => s.archive);
+  const [shown, setShown] = useState(false);
+  const page = view?.stack[view.stack.length - 1];
+  const data = page ? findPage(world.archive, page, world.home) : null;
+
+  // fade in after mounting; fade out by dropping the class before the layer goes
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(view !== null));
+    return () => cancelAnimationFrame(id);
+  }, [view]);
+
+  // a page whose target is gone steps back
+  useEffect(() => {
+    if (page && !data) backArchive(appStore);
+  }, [page, data]);
+
+  if (!view || !page || !data) return null;
+
+  const header = headerOf(data);
+  return (
+    <section
+      className={`archive${shown ? ' is-on' : ''}${view.slow ? ' is-slow' : ''}`}
+      aria-label="Archive"
+    >
+      <div className="archive__head">
+        <div className="archive__bar">
+          <button type="button" className="archive__round" aria-label="Close" onClick={() => closeArchive(appStore)}>
+            ✕
+          </button>
+          {view.stack.length > 1 && (
+            <button type="button" className="archive__round" aria-label="Back" onClick={() => backArchive(appStore)}>
+              ←
+            </button>
+          )}
+          <nav className="archive__tabs">
+            {SECTIONS.map((section) => (
+              <button
+                key={section.key}
+                type="button"
+                className={sectionOf(view.stack[0] ?? page) === section.key ? 'is-on' : undefined}
+                onClick={() => openArchive(appStore, { kind: section.key }, true)}
+              >
+                {section.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="archive__text" key={JSON.stringify(page)}>
+          {header.crumbs.length > 0 && (
+            <div className="archive__crumbs">
+              {header.crumbs.map(([label, to], i) => (
+                <span key={label}>
+                  {i > 0 && <i>›</i>}
+                  <button type="button" onClick={() => go(to)}>
+                    {label}
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <h2>{header.title}</h2>
+          {header.sub && <p className="archive__sub">{header.sub}</p>}
+          {header.map && (
+            <div className="archive__acts">
+              <button type="button" className="archive__btn is-star" onClick={() => header.map && showOnMap(director, header.map)}>
+                ◎ Show on map
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className={`archive__grid${data.kind === 'album' ? ' archive__grid--photos' : ''}`} key={`grid-${JSON.stringify(page)}`}>
+        <PageBody data={data} world={world} />
+      </div>
+    </section>
+  );
+}
+
+interface Header {
+  crumbs: [string, ArchivePage][];
+  title: string;
+  sub: string;
+  map: Parameters<typeof showOnMap>[1] | null;
+}
+
+const headerOf = (data: PageData): Header => {
+  const photos = (albums: Album[]) => albums.reduce((sum, a) => sum + a.photoCount, 0);
+  switch (data.kind) {
+    case 'trips':
+      return { crumbs: [], title: 'Trips', sub: plural(data.journeys.length, 'trip'), map: null };
+    case 'trip': {
+      const { journey } = data;
+      const places = new Set(journey.albums.map((a) => a.city)).size;
+      const start = data.route[0]?.place.replace(/^home · .*/, 'home') ?? 'home';
+      const end = data.route[data.route.length - 1]?.place.replace(/^home · .*/, 'home') ?? 'home';
+      return {
+        crumbs: [['Trips', { kind: 'trips' }]],
+        title: journey.name,
+        sub: `${dateSpan(journey.albums)} · ${plural(places, 'place')} · ${plural(photos(journey.albums), 'photo')} · from ${start} to ${end}`,
+        map: journey.albums.length > 0 && journey.real ? { kind: 'trip', id: journey.id } : null,
+      };
+    }
+    case 'albums':
+      return {
+        crumbs: [],
+        title: 'Albums',
+        sub: `${plural(data.albums.length, 'album')} · ${plural(photos(data.albums), 'photo')}`,
+        map: null,
+      };
+    case 'album': {
+      const { album, journey } = data;
+      const crumbs: [string, ArchivePage][] = [
+        [album.city.country.name, { kind: 'country', id: album.city.country.id }],
+        [album.city.name, { kind: 'city', key: album.city.key }],
+      ];
+      if (journey?.real) crumbs.push([`Trip: ${journey.name}`, { kind: 'trip', id: journey.id }]);
+      return {
+        crumbs,
+        title: album.title,
+        sub: `${whenLabel(album)} · ${describeAlbum(album)}`,
+        map: { kind: 'album', id: album.id },
+      };
+    }
+    case 'countries':
+      return { crumbs: [], title: 'Countries', sub: plural(data.countries.length, 'country'), map: null };
+    case 'country': {
+      const albums = data.cities.reduce((n, c) => n + c.albums.length, 0);
+      return {
+        crumbs: [['Countries', { kind: 'countries' }]],
+        title: data.country.name,
+        sub: `${plural(data.cities.length, 'city')} · ${plural(albums, 'album')}`,
+        map: null,
+      };
+    }
+    case 'cities':
+      return { crumbs: [], title: 'Cities', sub: plural(data.cities.length, 'place'), map: null };
+    case 'city':
+      return {
+        crumbs: [
+          ['Cities', { kind: 'cities' }],
+          [data.city.country.name, { kind: 'country', id: data.city.country.id }],
+        ],
+        title: data.city.name,
+        sub: `${plural(data.city.albums.length, 'album')} · ${plural(photos(data.city.albums), 'photo')}`,
+        map: null,
+      };
+    case 'years':
+      return { crumbs: [], title: 'Years', sub: plural(data.years.length, 'year'), map: null };
+    case 'year':
+      return {
+        crumbs: [['Years', { kind: 'years' }]],
+        title: `${data.year} · ${plural(data.albums.length, 'album')}`,
+        sub: '',
+        map: { kind: 'year', year: data.year },
+      };
+  }
+};
+
+function PageBody({ data, world }: { data: PageData; world: World }) {
+  switch (data.kind) {
+    case 'trips':
+      return <>{data.journeys.map((journey) => <TripCard key={journey.id} journey={journey} />)}</>;
+    case 'trip':
+      return (
+        <>
+          {data.route.map((stop) => (
+            <Fragment key={`stop-${stop.n}`}>
+              <div className="archive__stop">
+                <i>{String(stop.n).padStart(2, '0')}</i>
+                <b>{stop.label}</b>
+                <span>{stop.place}</span>
+              </div>
+              {stop.albums.map((album) => (
+                <Folder key={album.id} album={album} showCity={false} />
+              ))}
+            </Fragment>
+          ))}
+        </>
+      );
+    case 'albums':
+      return <YearGroups albums={data.albums} showCity />;
+    case 'album':
+      return <PhotoGrid album={data.album} />;
+    case 'countries':
+      return <>{data.countries.map((country) => <CountryCard key={country.id} country={country} />)}</>;
+    case 'country':
+      return <>{data.cities.map((city) => <CityCard key={city.key} city={city} />)}</>;
+    case 'cities':
+      return <>{data.cities.map((city) => <CityCard key={city.key} city={city} />)}</>;
+    case 'city':
+      return <YearGroups albums={data.city.albums} showCity={false} />;
+    case 'years':
+      return <>{data.years.map((year) => <YearCard key={year} year={year} world={world} />)}</>;
+    case 'year':
+      return (
+        <>
+          {[...data.albums].map((album) => (
+            <Folder key={album.id} album={album} showCity />
+          ))}
+        </>
+      );
+  }
+}
+
+function YearGroups({ albums, showCity }: { albums: Album[]; showCity: boolean }) {
+  return (
+    <>
+      {albumsByYear(albums).map((group) => (
+        <Fragment key={group.year}>
+          <div className="archive__year">{group.year}</div>
+          {group.albums.map((album) => (
+            <Folder key={album.id} album={album} showCity={showCity} />
+          ))}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+function Cover({ photo }: { photo: PhotoRef | undefined }) {
+  const url = photo ? photoUrl(photo) : null;
+  return url ? <img src={url} alt="" loading="lazy" /> : null;
+}
+
+function TripCard({ journey }: { journey: Journey }) {
+  const places = [...new Set(journey.albums.map((a) => a.city.name))];
+  return (
+    <button type="button" className="archive__card" onClick={() => go({ kind: 'trip', id: journey.id })}>
+      <Cover photo={coverOf(journey.albums)} />
+      <div>
+        <b>{journey.name}</b>
+        <span>
+          {dateSpan(journey.albums)}
+          {places.length > 0 ? ` · ${places.join(', ')}` : ''}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function CountryCard({ country }: { country: Country }) {
+  const cities = country.cities.filter((c) => c.albums.length > 0);
+  const albums = cities.reduce((n, c) => n + c.albums.length, 0);
+  return (
+    <button type="button" className="archive__card" onClick={() => go({ kind: 'country', id: country.id })}>
+      <Cover photo={coverOf(cities.flatMap((c) => c.albums))} />
+      <div>
+        <b>{country.name}</b>
+        <span>
+          {plural(cities.length, 'city')} · {plural(albums, 'album')}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function CityCard({ city }: { city: City }) {
+  const years = visitYears(city);
+  const first = years[0];
+  const last = years[years.length - 1];
+  return (
+    <button type="button" className="archive__card" onClick={() => go({ kind: 'city', key: city.key })}>
+      <Cover photo={cityPhotos(city)[0]} />
+      <div>
+        <b>{city.name}</b>
+        <span>
+          {plural(city.albums.length, 'album')} · {first}
+          {last !== undefined && last !== first ? `–${last}` : ''}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function YearCard({ year, world }: { year: number; world: World }) {
+  const albums = world.archive.albums.filter((a) => a.year === year);
+  const places = new Set(albums.map((a) => a.city)).size;
+  return (
+    <button type="button" className="archive__card archive__card--year" onClick={() => go({ kind: 'year', year })}>
+      <Cover photo={coverOf(albums)} />
+      <div>
+        <b>{year}</b>
+        <span>
+          {plural(albums.length, 'album')} · {plural(places, 'place')}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+/** A stack of three photos in a folder that fans out on hover. */
+function Folder({ album, showCity }: { album: Album; showCity: boolean }) {
+  const photos = [...folderPhotos(album)].reverse();
+  return (
+    <button type="button" className="folder" onClick={() => go({ kind: 'album', id: album.id })}>
+      <div className="folder__stack">
+        {photos.map((photo, i) => (
+          <img key={i} src={photoUrl(photo) ?? undefined} alt="" loading="lazy" />
+        ))}
+        <div className="folder__front">
+          <b>{album.title}</b>
+          <span>
+            {showCity ? `${album.city.name} · ` : ''}
+            {album.day} {MONTHS[album.month - 1]} {album.year} · {plural(album.photoCount, 'photo')}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function PhotoGrid({ album }: { album: Album }) {
+  useStore(socialStore, (s) => s.byKey);
+  if (album.photos.length === 0) return <p className="archive__sub">No photos yet.</p>;
+  return (
+    <>
+      {album.photos.map((photo, index) => {
+        const key = photoKey(photo);
+        const social = socialFor(key);
+        return (
+          <button
+            type="button"
+            key={key}
+            className="archive__pic"
+            onClick={(event) => {
+              const frame = event.currentTarget.querySelector('.archive__photo');
+              if (!frame) return;
+              const { x, y, width, height } = frame.getBoundingClientRect();
+              openPhoto(appStore, album.id, index, { x, y, width, height });
+            }}
+          >
+            <div className="archive__photo">
+              <img src={photoUrl(photo) ?? undefined} alt="" loading="lazy" data-photo-key={key} />
+              <div className="archive__meta">
+                <span>
+                  {social.liked ? '♥' : '♡'} {social.likes}
+                </span>
+                <span>{plural(social.comments.length, 'comment')}</span>
+              </div>
+            </div>
+            <p className="archive__cap">{photoNote(photo)}</p>
+          </button>
+        );
+      })}
+    </>
+  );
+}

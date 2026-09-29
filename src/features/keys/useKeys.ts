@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { Archive } from '@/data/archive';
 import { appStore } from '@/state/app-state';
+import { backArchive } from '@/state/archive-nav';
 import { closePhoto, escapeTarget, stepPhoto, toggleSlideshow } from '@/state/layers';
 import type { Director } from '@/tour/director';
 
@@ -28,6 +29,7 @@ export const useKeys = (director: Director, archive: Archive): void => {
         const layer = escapeTarget(state);
         if (layer === 'menu') appStore.set({ menu: null });
         else if (layer === 'photo') closePhoto(appStore);
+        else if (layer === 'archive') backArchive(appStore);
         else director.escape();
         return;
       }
@@ -43,6 +45,9 @@ export const useKeys = (director: Director, archive: Archive): void => {
         }
         return;
       }
+
+      // the archive is a page: arrows and Space belong to it, not to the globe under it
+      if (state.archive) return;
 
       switch (event.key) {
         case 'ArrowRight':
