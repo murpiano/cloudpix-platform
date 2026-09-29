@@ -32,6 +32,8 @@ import type { PlaceLook } from '@/render/places';
 import { createSky, drawSky, drawStarField, STAR_PAD, starDrift, stepSky } from '@/render/sky';
 import { appStore } from '@/state/app-state';
 import { frameStep } from './clock';
+import { createGesture } from './gesture';
+import type { PointerInput } from './gesture';
 import { pushSample, spinDirection, throwVelocity } from './throw';
 import type { DragSample } from './throw';
 
@@ -56,8 +58,6 @@ const CRUISE = 0.06;
 /** Each 60 Hz frame keeps this share of a throw. */
 const THROW_DECAY = 0.975;
 const PULSE_MS = 1500;
-/** A press becomes a drag after this many px. */
-const DRAG_THRESHOLD = 5;
 /** A place is hit within this many px of its centre, or more for a big glow. */
 const HIT_MIN = 14;
 
@@ -144,11 +144,9 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   const homeV = vec(home.lon, home.lat);
 
   // input
-  const pointers = new Map<number, [number, number]>();
+  const gesture = createGesture();
   let dragging = false;
-  let moved = false;
-  let pinch: { distance: number; z: number } | null = null;
-  let downAt: [number, number] = [0, 0];
+  let pinchZ = 1;
   let samples: DragSample[] = [];
   let dragX = 0;
   let dragY = 0;
@@ -310,51 +308,53 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
 
   // input: drag, throw, wheel and pinch zoom
 
+  const input = (event: PointerEvent): PointerInput => ({
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    mouse: event.pointerType === 'mouse',
+    button: event.button,
+    buttons: event.buttons,
+  });
+
+  const release = (dragged: boolean) => {
+    dragging = false;
+    updateCursor();
+    if (!dragged) return;
+    [vx, vy] = throwVelocity(samples, performance.now());
+    spinDir = spinDirection(vx, vy, rot[2], spinDir);
+    // let go, with or without a throw: the Earth picks its spin back up
+    spinning = true;
+  };
+
   const onPointerDown = (event: PointerEvent) => {
+    const kind = gesture.down(input(event));
     globe.setPointerCapture(event.pointerId);
-    pointers.set(event.pointerId, [event.clientX, event.clientY]);
-    downAt = [event.clientX, event.clientY];
     dragging = true;
-    moved = false;
     samples = [];
     dragX = 0;
     dragY = 0;
     updateCursor();
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      if (a && b) pinch = { distance: Math.hypot(a[0] - b[0], a[1] - b[1]), z: zTarget };
-    }
+    if (kind === 'pinch') pinchZ = zTarget;
   };
 
   const onPointerMove = (event: PointerEvent) => {
     if (event.pointerType === 'mouse') mouse = [event.clientX, event.clientY];
-    const previous = pointers.get(event.pointerId);
-    if (!previous) return;
-    pointers.set(event.pointerId, [event.clientX, event.clientY]);
-
-    if (pinch && pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      if (a && b) {
-        const distance = Math.hypot(a[0] - b[0], a[1] - b[1]);
-        zTarget = clamp((pinch.z * distance) / pinch.distance, Z_MIN, Z_MAX);
-      }
+    const next = gesture.move(input(event));
+    if (next.kind === 'pinch') {
+      zTarget = clamp(pinchZ * next.scale, Z_MIN, Z_MAX);
       return;
     }
+    if (next.kind !== 'drag') return;
 
-    // a real drag starts after a few px, and it stops any spin
-    if (
-      !moved &&
-      Math.hypot(event.clientX - downAt[0], event.clientY - downAt[1]) > DRAG_THRESHOLD
-    ) {
-      moved = true;
+    // a real drag stops any spin
+    if (next.started) {
       vx = vy = spin = 0;
       spinning = false;
     }
-    if (!moved) return;
-
     const perPixel = 1 / DEG / r; // degrees per pixel at the current size
-    const dx = (event.clientX - previous[0]) * perPixel;
-    const dy = (event.clientY - previous[1]) * perPixel;
+    const dx = next.dx * perPixel;
+    const dy = next.dy * perPixel;
     rot = turn(rot, dx, dy, t);
     dragX += dx;
     dragY += dy;
@@ -362,16 +362,8 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   };
 
   const onPointerUp = (event: PointerEvent) => {
-    pointers.delete(event.pointerId);
-    if (pointers.size < 2) pinch = null;
-    if (pointers.size > 0) return;
-    dragging = false;
-    updateCursor();
-    if (!moved) return;
-    [vx, vy] = throwVelocity(samples, performance.now());
-    spinDir = spinDirection(vx, vy, rot[2], spinDir);
-    // let go, with or without a throw: the Earth picks its spin back up
-    spinning = true;
+    const done = gesture.up(input(event));
+    if (done) release(done.dragged);
   };
 
   const onPointerLeave = () => {
