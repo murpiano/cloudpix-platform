@@ -38,7 +38,7 @@ export function App() {
           </button>
         </div>
       )}
-      <Header />
+      <Header world={boot.status === 'ready' ? boot.world : null} />
     </>
   );
 }
