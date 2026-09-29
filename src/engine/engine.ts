@@ -329,6 +329,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
 
   const onPointerDown = (event: PointerEvent) => {
     const kind = gesture.down(input(event));
+    if (kind === 'ignored') return;
     globe.setPointerCapture(event.pointerId);
     dragging = true;
     samples = [];
@@ -341,6 +342,10 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   const onPointerMove = (event: PointerEvent) => {
     if (event.pointerType === 'mouse') mouse = [event.clientX, event.clientY];
     const next = gesture.move(input(event));
+    if (next.kind === 'release') {
+      release(next.dragged);
+      return;
+    }
     if (next.kind === 'pinch') {
       zTarget = clamp(pinchZ * next.scale, Z_MIN, Z_MAX);
       return;

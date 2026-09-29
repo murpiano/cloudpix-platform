@@ -11,6 +11,43 @@ const touch = (id: number, x: number, y: number): PointerInput => ({
   buttons: 1,
 });
 
+const mouse = (x: number, y: number, button = 0, buttons = 1): PointerInput => ({
+  id: 1,
+  x,
+  y,
+  mouse: true,
+  button,
+  buttons,
+});
+
+describe('review findings', () => {
+  it('still counts a drag when a second finger joins it for a pinch', () => {
+    // drag, pinch, lift both: the Earth must pick its spin back up (spec 3.1)
+    const gesture = createGesture();
+    gesture.down(touch(1, 100, 100));
+    gesture.move(touch(1, 120, 100));
+    gesture.down(touch(2, 300, 100));
+    gesture.move(touch(2, 350, 100));
+    gesture.up(touch(2, 350, 100));
+    expect(gesture.up(touch(1, 120, 100))).toEqual({ dragged: true });
+  });
+
+  it('ignores a mouse button other than the main one', () => {
+    const gesture = createGesture();
+    expect(gesture.down(mouse(100, 100, 2, 2))).toBe('ignored');
+    expect(gesture.dragging).toBe(false);
+    expect(gesture.move(mouse(150, 100, -1, 0))).toEqual({ kind: 'idle' });
+  });
+
+  it('lets go when the mouse moves with no button held, as after a context menu', () => {
+    const gesture = createGesture();
+    gesture.down(mouse(100, 100));
+    gesture.move(mouse(120, 100));
+    expect(gesture.move(mouse(140, 100, -1, 0))).toEqual({ kind: 'release', dragged: true });
+    expect(gesture.dragging).toBe(false);
+  });
+});
+
 describe('createGesture', () => {
   it('turns a press that moves more than 5 px into a drag', () => {
     const gesture = createGesture();

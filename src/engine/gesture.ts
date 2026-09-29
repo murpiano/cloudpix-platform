@@ -18,7 +18,9 @@ export type GestureMove =
   /** Two fingers: the zoom factor since the second finger went down. */
   | { kind: 'pinch'; scale: number }
   /** One pointer: px moved since its last event; `started` on the move that crosses the threshold. */
-  | { kind: 'drag'; started: boolean; dx: number; dy: number };
+  | { kind: 'drag'; started: boolean; dx: number; dy: number }
+  /** The mouse moved with no button held: its release never arrived (a context menu ate it). */
+  | ({ kind: 'release' } & GestureRelease);
 
 export interface GestureRelease {
   /** Whether the pointers moved far enough to count as a drag, rather than a tap. */
@@ -46,11 +48,13 @@ export const createGesture = () => {
       return pointers.size > 0;
     },
 
-    /** 'pinch' when this pointer is the second finger. */
-    down(pointer: PointerInput): 'drag' | 'pinch' {
+    /** 'pinch' when this pointer is the second finger; 'ignored' for a mouse button but the main one. */
+    down(pointer: PointerInput): 'drag' | 'pinch' | 'ignored' {
+      if (pointer.mouse && pointer.button !== 0) return 'ignored';
+      // a new gesture starts with the first pointer; a finger that joins it keeps its drag
+      if (pointers.size === 0) moved = false;
       pointers.set(pointer.id, [pointer.x, pointer.y]);
       downAt = [pointer.x, pointer.y];
-      moved = false;
       if (pointers.size === 2) {
         pinchFrom = spread();
         return 'pinch';
@@ -61,6 +65,11 @@ export const createGesture = () => {
     move(pointer: PointerInput): GestureMove {
       const previous = pointers.get(pointer.id);
       if (!previous) return { kind: 'idle' };
+      if (pointer.mouse && pointer.buttons === 0) {
+        pointers.delete(pointer.id);
+        pinchFrom = null;
+        return { kind: 'release', dragged: moved };
+      }
       pointers.set(pointer.id, [pointer.x, pointer.y]);
 
       if (pinchFrom !== null && pointers.size === 2) {
