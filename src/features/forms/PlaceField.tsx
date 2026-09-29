@@ -1,10 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Archive } from '@/data/archive';
+import { loadCities } from '@/data/cities';
 import { searchPlaces } from '@/data/places';
-import type { PickedPlace } from '@/data/places';
+import type { Listed, PickedPlace } from '@/data/places';
 import { placeLabel } from './fields';
 
-/** A city field: the places already on the map first, then the built-in list. */
+/** The cities of the world, once they have come in; before that the field uses a short list. */
+const useCities = (): Listed[] | undefined => {
+  const [cities, setCities] = useState<Listed[]>();
+  useEffect(() => {
+    let live = true;
+    loadCities().then(
+      (list) => live && setCities(list),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return cities;
+};
+
+/** A city field: the places already on the map first, then every city of the world. */
 export function PlaceField({
   id,
   label,
@@ -20,8 +37,9 @@ export function PlaceField({
 }) {
   const [text, setText] = useState(value ? placeLabel(value) : '');
   const [open, setOpen] = useState(false);
+  const cities = useCities();
   // a place that is already picked shows the whole list again, not a search for its own label
-  const found = searchPlaces(archive, value && placeLabel(value) === text ? '' : text);
+  const found = searchPlaces(archive, value && placeLabel(value) === text ? '' : text, cities);
 
   const choose = (place: PickedPlace) => {
     setText(placeLabel(place));

@@ -1,7 +1,16 @@
 import { slugOf } from './order';
 import type { PickedPlace } from './places';
 import { photoKey } from './social';
-import type { AlbumData, ArchiveData, CityData, CountryData, Endpoint, Id, PhotoRef, Trip } from './types';
+import type {
+  AlbumData,
+  ArchiveData,
+  CityData,
+  CountryData,
+  Endpoint,
+  Id,
+  PhotoRef,
+  Trip,
+} from './types';
 
 /** An id nothing else will take: the time in base 36 plus a little noise. */
 export const freshId = (prefix: string, now = Date.now(), random: () => number = Math.random): Id =>
@@ -25,12 +34,23 @@ export const cityFor = (data: ArchiveData, place: PickedPlace): CityData => {
     const known = country.cities.find((city) => city.key === place.cityKey);
     if (known) return known;
   }
-  const mine = country.cities.find((city) => city.name === place.name);
+  // the same name at the same spot is the same city; a namesake far away is another one
+  const mine = country.cities.find(
+    (city) =>
+      city.name === place.name &&
+      Math.abs(city.lat - place.lat) < 1 &&
+      Math.abs(city.lon - place.lon) < 1,
+  );
   if (mine) return mine;
-  // the key is the slug; a name another country already took gets its country behind it
-  const base = slugOf(place.name);
+  // the key is the slug; one that is taken (or that a non-Latin name leaves empty) gets more added
   const taken = new Set(allCities(data).map((city) => city.key));
-  const key = taken.has(base) ? `${base}-${slugOf(place.country)}` : base;
+  const countrySlug = slugOf(place.country);
+  const candidates = [slugOf(place.name), `${slugOf(place.name)}-${countrySlug}`].filter(Boolean);
+  let key = candidates.find((candidate) => !taken.has(candidate));
+  for (let n = 2; key === undefined; n++) {
+    const more = `${candidates[candidates.length - 1] ?? (countrySlug || 'place')}-${n}`;
+    if (!taken.has(more)) key = more;
+  }
   const city: CityData = { key, name: place.name, lat: place.lat, lon: place.lon, albums: [] };
   country.cities.push(city);
   return city;

@@ -9,5 +9,7 @@ export const demoRepository = (credits: Credit[]): Repository => ({
   save: () => {},
   addPhoto: () => Promise.reject(new Error('the demo keeps nothing')),
   dropPhotos: () => Promise.resolve(),
+  readPhoto: () => Promise.resolve(null),
+  restore: () => Promise.reject(new Error('the demo keeps nothing')),
   clear: () => Promise.resolve(),
 });

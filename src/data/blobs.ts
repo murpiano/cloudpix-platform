@@ -54,6 +54,9 @@ const run = async <T>(
   });
 };
 
+export const getPhoto = async (id: Id): Promise<Blob | null> =>
+  (await run<Blob>('readonly', (store) => store.get(id) as IDBRequest<Blob>)) ?? null;
+
 export const putPhoto = (id: Id, blob: Blob): Promise<unknown> =>
   run('readwrite', (store) => store.put(blob, id));
 

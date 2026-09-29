@@ -22,6 +22,8 @@ const fake = (editable: boolean): Repository => ({
   save: vi.fn(),
   addPhoto: vi.fn(),
   dropPhotos: vi.fn(),
+  readPhoto: vi.fn(),
+  restore: vi.fn(),
   clear: vi.fn(),
 });
 

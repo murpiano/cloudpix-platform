@@ -4,6 +4,7 @@ import type {
   CityData,
   CountryData,
   Endpoint,
+  Id,
   PhotoRef,
   Trip,
 } from './types';
@@ -16,6 +17,10 @@ export interface Repository {
   save(data: ArchiveData): void;
   addPhoto(blob: Blob, name: string): Promise<PhotoRef>;
   dropPhotos(refs: PhotoRef[]): Promise<void>;
+  /** The file of one of the owner's photos, for a backup; null when it is gone. */
+  readPhoto(id: Id): Promise<Blob | null>;
+  /** Puts a backup in place of everything that is kept. */
+  restore(data: ArchiveData, photos: ReadonlyMap<Id, Blob>): Promise<void>;
   /** Throws everything away: the archive starts again from the demo. */
   clear(): Promise<void>;
 }

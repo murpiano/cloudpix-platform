@@ -12,6 +12,8 @@ const repo = (over: Partial<Repository> = {}): Repository => ({
   addPhoto: (_blob: Blob, name: string) =>
     Promise.resolve({ kind: 'own', id: `id-${name}`, name } as PhotoRef),
   dropPhotos: vi.fn(() => Promise.resolve()),
+  readPhoto: vi.fn(),
+  restore: vi.fn(),
   clear: vi.fn(),
   ...over,
 });

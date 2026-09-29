@@ -73,6 +73,28 @@ describe('cityFor', () => {
     expect(one).not.toBe(two);
     expect(one.key).not.toBe(two.key);
   });
+
+  it('keeps a namesake far away in the same country apart, and finds a city again by its spot', () => {
+    const data = empty();
+    const usa = { country: 'United States', countryId: '840' };
+    const east = { ...usa, name: 'Springfield', lat: 42.1, lon: -72.59 };
+    const west = { ...usa, name: 'Springfield', lat: 44.05, lon: -123.02 };
+    const one = cityFor(data, east);
+    const two = cityFor(data, west);
+    expect(two).not.toBe(one);
+    expect(new Set([one.key, two.key]).size).toBe(2);
+    expect(cityFor(data, { ...east, lat: 42.11 })).toBe(one);
+  });
+
+  it('gives a name with no Latin letters a key of its own', () => {
+    const data = empty();
+    const japan = { country: 'Japan', countryId: '392' };
+    const one = cityFor(data, { ...japan, name: '東京', lat: 35.68, lon: 139.69 });
+    const two = cityFor(data, { ...japan, name: '京都', lat: 35.01, lon: 135.77 });
+    expect(one.key).toBeTruthy();
+    expect(two.key).toBeTruthy();
+    expect(one.key).not.toBe(two.key);
+  });
 });
 
 describe('albums', () => {

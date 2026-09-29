@@ -43,8 +43,11 @@ the tour ends by itself, the archive fades back in where you left it.
 
 Logged in, the archive also edits: a trip (a name, where it starts and ends, which albums belong
 to it), an album (a title, a place, a day, a trip, and photos dropped straight in), and a photo
-(its caption, or away with it). A place that is not on the map yet becomes a new light, and a new
-country joins the list.
+(its caption, or away with it). Any city of the world can be picked (a list of about 34,000 from
+GeoNames, loaded when a place field opens); a place that is not on the map yet becomes a new light,
+and a new country joins the list. Everything is kept in your browser, so the account settings can
+download the whole archive, photos included, as one backup file and restore it later, here or in
+another browser.
 
 ## How it works
 

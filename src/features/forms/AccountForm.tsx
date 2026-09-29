@@ -3,6 +3,7 @@ import type { Archive } from '@/data/archive';
 import type { PickedPlace } from '@/data/places';
 import { repository } from '@/state/owner';
 import { saveAccount, userStore } from '@/state/user';
+import { BackupBox } from './BackupBox';
 import { ConfirmButton } from './ConfirmButton';
 import { PlaceField } from './PlaceField';
 import { Acts, Sheet } from './Sheet';
@@ -79,6 +80,7 @@ export function AccountForm({ archive, onClose }: { archive: Archive; onClose: (
         </label>
       </div>
       <PlaceField id="fHome" label="Home base" archive={archive} value={home} onPick={setHome} />
+      <BackupBox archive={archive} />
       <Acts>
         <ConfirmButton
           label="Reset archive to the demo"

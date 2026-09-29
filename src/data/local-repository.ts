@@ -3,6 +3,7 @@ import {
   deletePhoto,
   dropDatabase,
   forgetOwnUrl,
+  getPhoto,
   loadOwnUrls,
   putPhoto,
   rememberOwnUrl,
@@ -44,6 +45,14 @@ export const localRepository = (credits: Credit[]): Repository => ({
         // the file is already gone; the archive no longer points at it either
       }
     }
+  },
+  readPhoto: getPhoto,
+  async restore(data, photos) {
+    // the old photos go first, so nothing of them is left next to the restored archive
+    writeJSON(KEY, null);
+    await dropDatabase();
+    for (const [id, blob] of photos) await putPhoto(id, blob);
+    if (!writeJSON(KEY, data)) throw new Error('the archive could not be kept');
   },
   async clear() {
     writeJSON(KEY, null);

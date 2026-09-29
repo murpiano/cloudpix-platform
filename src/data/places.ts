@@ -96,8 +96,38 @@ export const GAZETTEER: Place[] = RAW.map(([name, country, countryId, lat, lon])
 
 const LIMIT = 8;
 
-/** The places to pick from: the ones already on the map first, then the built-in list. */
-export const searchPlaces = (archive: Archive, query: string): PickedPlace[] => {
+/** A place with its search text made once: lower case, no accents, name and country together. */
+export interface Listed extends Place {
+  find: string;
+  /** The end of `find` where the country starts, so a hit on the city outranks one on the country. */
+  at: number;
+}
+
+/** Lower case with the accents taken off: "Reykjavík" and "reykjavik" are one word. */
+export const plain = (text: string): string =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+export const listPlaces = (places: readonly Place[], ascii: readonly string[] = []): Listed[] =>
+  places.map((place, index) => {
+    const city = `${plain(place.name)} ${ascii[index] ? plain(ascii[index]) : ''}`.trim();
+    return { ...place, find: `${city}|${plain(place.country)}`, at: city.length };
+  });
+
+const BUILT_IN = listPlaces(GAZETTEER);
+
+/**
+ * The places to pick from: the ones already on the map first, then the list of cities (the full
+ * one once it has loaded, a short built-in one before that). A city whose name starts with what
+ * was typed comes before one that only contains it, and either before a match on the country.
+ */
+export const searchPlaces = (
+  archive: Archive,
+  query: string,
+  cities: readonly Listed[] = BUILT_IN,
+): PickedPlace[] => {
   const mine: PickedPlace[] = archive.countries.flatMap((country) =>
     country.cities.map((city) => ({
       name: city.name,
@@ -108,14 +138,41 @@ export const searchPlaces = (archive: Archive, query: string): PickedPlace[] => 
       cityKey: city.key,
     })),
   );
-  const seen = new Set(mine.map((place) => `${place.name}|${place.country}`));
-  const all = [...mine, ...GAZETTEER.filter((place) => !seen.has(`${place.name}|${place.country}`))];
-  const needle = query.trim().toLowerCase();
-  const hits = needle
-    ? all.filter(
-        (place) =>
-          place.name.toLowerCase().includes(needle) || place.country.toLowerCase().includes(needle),
-      )
-    : all;
-  return hits.slice(0, LIMIT);
+  const needle = plain(query.trim());
+  const matches = (place: { name: string; country: string }): number => {
+    if (!needle) return 0;
+    const name = plain(place.name);
+    if (name.startsWith(needle)) return 0;
+    if (name.includes(needle)) return 1;
+    return plain(place.country).includes(needle) ? 2 : -1;
+  };
+  const own = new Set(mine.map((place) => plain(place.name)));
+  const hits: { place: PickedPlace; rank: number }[] = mine.flatMap((place) => {
+    const rank = matches(place);
+    return rank < 0 ? [] : [{ place, rank: rank - 3 }];
+  });
+  // the list is in order of size, so the first hits of each kind are the biggest cities
+  const per: PickedPlace[][] = [[], [], []];
+  for (const listed of cities) {
+    if (per.every((bucket) => bucket.length >= LIMIT)) break;
+    if (needle && !listed.find.includes(needle)) continue;
+    const city = listed.find.slice(0, listed.at);
+    let rank = 2;
+    if (!needle || city.startsWith(needle) || city.includes(` ${needle}`)) rank = 0;
+    else if (city.includes(needle)) rank = 1;
+    const bucket = per[rank];
+    if (!bucket || bucket.length >= LIMIT || own.has(plain(listed.name))) continue;
+    bucket.push({
+      name: listed.name,
+      country: listed.country,
+      countryId: listed.countryId,
+      lat: listed.lat,
+      lon: listed.lon,
+    });
+  }
+  per.forEach((bucket, rank) => {
+    for (const place of bucket) hits.push({ place, rank });
+  });
+  hits.sort((a, b) => a.rank - b.rank);
+  return hits.slice(0, LIMIT).map((hit) => hit.place);
 };
