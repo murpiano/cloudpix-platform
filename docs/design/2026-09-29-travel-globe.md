@@ -1,6 +1,7 @@
 # CloudPix: travel globe — design
 
 Status: approved in prototype form on 2026-09-29, waiting for review of this written version.
+Changed on 2026-09-29: the UI is built with React (the owner's decision); sections 1 and 8 follow.
 Reference prototype: [`prototype/flight.html`](prototype/flight.html) with
 [`prototype/atlas-data.js`](prototype/atlas-data.js). It is one throwaway file; this document
 describes what to build properly. When the two disagree, this document wins.
@@ -12,8 +13,9 @@ cities, albums of photos and the trips that tie albums together. Visitors see it
 globe: lights for places, a timeline of years, and a plane that flies the trips in order.
 
 The new app replaces the current CloudPix (the sphere of photos, the studio with effects). The
-old code stays in git history. The stack stays: TypeScript, SCSS, Vite, Vitest, no UI
-framework. New runtime dependencies: `d3-geo`, `topojson-client`.
+old code stays in git history. The stack: TypeScript, SCSS, Vite, Vitest, and React 19 for the
+UI. New runtime dependencies: `react`, `react-dom`, `d3-geo`, `topojson-client`. The globe and
+the sky draw on canvas outside React's render cycle.
 
 Success means:
 
@@ -299,7 +301,10 @@ interface Social { liked: boolean; likes: number; comments: { who: string; text:
 
 ```
 src/
-  main.ts                 boot: load data, build UI, start the frame loop
+  main.tsx                mounts <App/>
+  app/                    App: loads the world, lays out the screen
+  state/                  store (useSyncExternalStore) and the app state
+  engine/                 the frame loop: world clock, camera, input, hit tests
   data/
     types.ts              the model above
     demo.ts               demo countries, albums, trips (from prototype/atlas-data.js)
@@ -320,7 +325,8 @@ src/
     globe.ts              land, lights, places, route, plane
     house.ts              isometric house shapes, light, smoke
     sky.ts                drift, twinkle, meteors, satellites
-  features/
+  features/               React components, one folder per feature, each with its SCSS
+    globe/                the canvases and the hover label
     panel/                album panel, caption, scope header
     timeline/             timeline UI, chip
     archive/              tabs, sections, pages, folders
@@ -333,8 +339,10 @@ public/demo/              photos, photos.json (credits), countries-110m.json
 
 - One `requestAnimationFrame` loop owns time. It keeps a world clock that stops while the photo
   window or the archive is open. Every animation reads that clock.
-- UI features talk through a small app state module (focus, range, tour, mode, settings) with
-  change events. There are no framework dependencies.
+- React components read and change the app state (focus, range, tour, mode, settings) through a
+  small store read with `useSyncExternalStore`. The canvas engine reads the same store every
+  frame and writes to it only when something changes (the place under the cursor, a landing), so
+  React never renders once per frame.
 - The pure modules in `geo/`, `timeline/` and `tour/` hold the logic that went wrong most often
   in the prototype. They are covered by unit tests.
 - The repository is the single seam for storage. Section 9 swaps its implementation.
