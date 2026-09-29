@@ -118,7 +118,10 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
         className="lightbox__stage"
         onClick={close}
         onPointerDown={(event) => {
-          swipe.current = { x: event.clientX, used: false };
+          // the arrows and the slideshow bar sit on the stage but are not the photo
+          const control =
+            event.target instanceof Element && event.target.closest('.lightbox__bar, .lightbox__nav');
+          swipe.current = control ? null : { x: event.clientX, used: false };
         }}
         onPointerUp={(event) => {
           const start = swipe.current;

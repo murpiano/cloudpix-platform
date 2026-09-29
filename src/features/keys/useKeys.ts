@@ -13,7 +13,10 @@ export const useKeys = (director: Director, archive: Archive): void => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
-      const field = target?.closest('input, textarea, select');
+      // only fields you type into keep the keys; a slider or a checkbox does not
+      const field = target?.closest(
+        'textarea, select, input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=button])',
+      );
       if (field) {
         // Esc first lets go of the field being typed in; the next one closes the layer
         if (event.key === 'Escape' && field instanceof HTMLElement) field.blur();

@@ -7,12 +7,36 @@
   grid-template-areas: 'info stage social';
   gap: 32px;
   padding: 34px 32px 30px;
-  background: rgb(4 6 13 / 96%);
-  opacity: 0;
-  transition: opacity 0.6s ease;
 
-  &.is-on {
+  // the backdrop fades; the photo itself never does, so it can grow and fly back whole
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgb(4 6 13 / 96%);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  &.is-on::before {
     opacity: 1;
+  }
+
+  &__close,
+  &__nav,
+  &__bar {
+    opacity: 0;
+    transition: opacity 0.4s ease 0.2s;
+  }
+
+  &.is-on &__close,
+  &.is-on &__bar {
+    opacity: 1;
+  }
+
+  &.is-on &__nav {
+    opacity: 0.8;
   }
 
   &__close {
@@ -120,6 +144,8 @@
   &__stage {
     grid-area: stage;
     position: relative;
+    // horizontal swipes turn the photos; the browser must not pan instead
+    touch-action: none;
     min-height: 0;
     margin-bottom: 50px;
     cursor: pointer;
@@ -153,13 +179,11 @@
     backdrop-filter: blur(6px);
     font-size: 18px;
     color: #fff;
-    opacity: 0.8;
     transition:
       opacity 0.3s,
       background 0.3s;
 
     &:hover {
-      opacity: 1;
       background: rgb(4 6 13 / 75%);
     }
 
