@@ -190,7 +190,11 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const step = nextStep(tour, focus, times, range);
     if (step.kind === 'album') go(step.index);
     else if (step.kind === 'end') flyEnd(step.end);
-    else stop();
+    else if (tour) {
+      // a year ends at its last album: the tour ended by itself
+      dwell = 0;
+      set({ playing: false, tourDone: get().tourDone + 1 });
+    } else stop();
   };
 
   const arrive = () => {
@@ -208,6 +212,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
       patch.atHome = card?.home ?? true;
       patch.tour = null;
       patch.playing = false;
+      patch.tourDone = get().tourDone + 1;
       dwell = 0;
     }
     set(patch);

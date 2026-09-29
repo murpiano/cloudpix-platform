@@ -264,6 +264,26 @@ describe('tours', () => {
     expect(state().playing).toBe(true);
   });
 
+  it('counts a year that ends by itself, and a trip that lands at its end', () => {
+    const year = setup();
+    year.director.showYear(2023);
+    year.run(60000);
+    expect(year.state().tourDone).toBe(1);
+    const trip = setup();
+    trip.director.showTrip(tripId('Japan in bloom'));
+    trip.run(40000);
+    expect(trip.state().tourDone).toBe(1);
+  });
+
+  it('does not count a tour the owner interrupted', () => {
+    const { director, run, state } = setup();
+    director.showYear(2023);
+    run(3000);
+    director.escape();
+    run(60000);
+    expect(state().tourDone).toBe(0);
+  });
+
   it('shows one album on the map without playing', () => {
     const { director, state } = setup();
     const index = indexOf('Tram 28');
