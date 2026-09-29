@@ -5,6 +5,8 @@ body,
 }
 
 html {
+  // The page never scrolls: no gutter, or the full-screen globe loses a strip on the right.
+  scrollbar-gutter: auto;
   background-color: var(--sky);
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
