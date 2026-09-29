@@ -49,6 +49,15 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // the photos on either side are loaded before they are wanted, so turning to one is not a wait
+  useEffect(() => {
+    for (const step of [-1, 1]) {
+      const near = album.photos[(photo.index + step + count) % count];
+      const url = near ? photoUrl(near) : null;
+      if (url) new Image().src = url;
+    }
+  }, [album, photo.index, count]);
+
   useInterval(
     () => stepPhoto(appStore, count, 1),
     slideSeconds * 1000,
@@ -112,11 +121,19 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
   };
 
   return (
-    <div className={`lightbox${shown && !photo.closing ? ' is-on' : ''}`} role="dialog" aria-label="Photo">
-      <button type="button" className="lightbox__close" aria-label="Close" onClick={() => closePhoto(appStore)}>
+    <div
+      className={`lightbox${shown && !photo.closing ? ' is-on' : ''}`}
+      role="dialog"
+      aria-label="Photo"
+    >
+      <button
+        type="button"
+        className="lightbox__close"
+        aria-label="Close"
+        onClick={() => closePhoto(appStore)}
+      >
         ✕
       </button>
-
 
       <div
         ref={stage}
@@ -125,7 +142,8 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
         onPointerDown={(event) => {
           // the arrows and the slideshow bar sit on the stage but are not the photo
           const control =
-            event.target instanceof Element && event.target.closest('.lightbox__bar, .lightbox__nav');
+            event.target instanceof Element &&
+            event.target.closest('.lightbox__bar, .lightbox__nav');
           swipe.current = control ? null : { x: event.clientX, used: false };
         }}
         onPointerUp={(event) => {
@@ -139,12 +157,14 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
         }}
       >
         {previous && photo.previous !== photo.index && (
+          // the same key the photo had while it was the current one: it is not made again, so it
+          // stays on the screen and only slides and fades away under the new one
           <StageImage
-            key={`under-${photo.previous}-${photo.index}`}
+            key={`photo-${photo.previous}`}
             src={photoUrl(previous)}
             stage={stage}
             from={null}
-            dir={0}
+            dir={photo.dir}
             current={false}
           />
         )}
@@ -203,7 +223,9 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
                 step={1}
                 value={slideSeconds}
                 aria-label="Slideshow speed"
-                onChange={(event) => settingsStore.set({ slideSeconds: Number(event.target.value) })}
+                onChange={(event) =>
+                  settingsStore.set({ slideSeconds: Number(event.target.value) })
+                }
               />
               <output>{slideSeconds} s</output>
             </label>
@@ -242,7 +264,9 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
           </div>
           <p className="lightbox__note">{current ? photoNote(current) : ''}</p>
           <p className="lightbox__desc">{describeAlbum(album)}</p>
-          <p className="lightbox__credit">{current ? creditLine(current, album.city, world.credits) : ''}</p>
+          <p className="lightbox__credit">
+            {current ? creditLine(current, album.city, world.credits) : ''}
+          </p>
         </aside>
         <aside className="lightbox__social">
           <button
@@ -342,6 +366,20 @@ function StageImage({
     return () => removeEventListener('resize', onResize);
   }, [stage]);
 
+  // the photo that is being turned away from slides out the other way while it fades
+  const wasCurrent = useRef(current);
+  useLayoutEffect(() => {
+    const element = image.current;
+    if (wasCurrent.current && !current && dir !== 0 && element) {
+      element.animate([{ transform: 'none' }, { transform: `translateX(${-dir * SLIDE_PX}px)` }], {
+        duration: SLIDE_MS,
+        easing: EASE,
+        fill: 'forwards',
+      });
+    }
+    wasCurrent.current = current;
+  }, [current, dir]);
+
   useLayoutEffect(() => {
     const element = image.current;
     if (!fit || !element || !current || played.current) return;
@@ -367,12 +405,16 @@ function StageImage({
 
   return (
     <img
-      ref={image}
       src={src ?? undefined}
       alt=""
       draggable={false}
       className={`lightbox__img ${current ? 'is-current' : 'is-under'}`}
       onLoad={measure}
+      ref={(element) => {
+        image.current = element;
+        // a photo that is already loaded is measured before the first paint: no hidden frame
+        if (element?.complete && element.naturalWidth && fit === null) measure();
+      }}
       style={
         fit
           ? { left: fit.x, top: fit.y, width: fit.width, height: fit.height }

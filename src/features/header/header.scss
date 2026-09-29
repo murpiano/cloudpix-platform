@@ -202,6 +202,11 @@
       height: 16px;
       accent-color: var(--lamp);
     }
+
+    // the help lines are not shown on a phone, so there is nothing to switch
+    @include mobile {
+      display: none !important;
+    }
   }
 
   &__nav {

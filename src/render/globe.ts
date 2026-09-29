@@ -4,6 +4,7 @@ import { faces } from '@/geo/projection';
 import type { LonLat, Vec3 } from '@/geo/vector';
 import type { EarthGeo } from '@/geo/world';
 import { clamp } from '@/lib/math';
+import { climbAngle } from '@/tour/flight';
 import { drawHouse, drawSmoke } from './house';
 import type { Smoke } from './house';
 import type { Light } from './lights';
@@ -197,7 +198,7 @@ export const createPainter = (ctx: CanvasRenderingContext2D, projection: GeoProj
     // a plane sent away climbs straight up the screen, out of the world, and grows a little
     ctx.translate(x, y - lift * 320);
     ctx.scale(1 + lift * 0.9, 1 + lift * 0.9);
-    ctx.rotate(angle);
+    ctx.rotate(climbAngle(angle, lift));
     ctx.shadowColor = 'rgba(255,220,160,.9)';
     ctx.shadowBlur = 12;
     ctx.fillStyle = '#fff';

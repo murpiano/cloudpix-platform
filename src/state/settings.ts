@@ -14,18 +14,19 @@ export interface Settings {
   help: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = {
-  photoSeconds: 5,
-  flightSeconds: 30,
-  slideSeconds: 4,
-  help: true,
-};
-
 export const SETTING_LIMITS = {
   photoSeconds: [2, 15],
   flightSeconds: [5, 90],
   slideSeconds: [2, 15],
 } as const;
+
+/** It starts as fast as it goes: every slider at its left end. */
+export const DEFAULT_SETTINGS: Settings = {
+  photoSeconds: SETTING_LIMITS.photoSeconds[0],
+  flightSeconds: SETTING_LIMITS.flightSeconds[0],
+  slideSeconds: SETTING_LIMITS.slideSeconds[0],
+  help: true,
+};
 
 /** Whatever was kept (maybe by an older build, maybe edited by hand), made safe to use. */
 export const cleanSettings = (raw: unknown): Settings => {

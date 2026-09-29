@@ -4,6 +4,7 @@ import type { LonLat } from '@/geo/vector';
 import {
   APPEAR_MS,
   beginEscape,
+  climbAngle,
   cameraTurnMs,
   createFlight,
   ESCAPE_MS,
@@ -149,5 +150,31 @@ describe('an escape into space', () => {
     const turn = createFlight({ from: null, to: PARIS, rot: [-30, -50, 0] });
     beginEscape(turn);
     expect(turn.phase).toBe('cruise');
+  });
+});
+
+describe('climbAngle', () => {
+  const UP = -Math.PI / 2; // straight up the screen, where y grows downwards
+  const sameAngle = (a: number, b: number) => expect(Math.cos(a - b)).toBeCloseTo(1, 6);
+
+  it('leaves the heading alone while the plane is not lifting', () => {
+    expect(climbAngle(0.7, 0)).toBe(0.7);
+  });
+
+  it('turns the nose to point straight up well before the plane is gone', () => {
+    sameAngle(climbAngle(0.7, 0.4), UP);
+    sameAngle(climbAngle(3, 1), UP);
+  });
+
+  it('turns part of the way in between', () => {
+    const half = climbAngle(0, 0.15);
+    expect(half).toBeLessThan(0);
+    expect(half).toBeGreaterThan(UP);
+  });
+
+  it('takes the short way round', () => {
+    // heading left (π): up is a quarter turn one way, not three quarters the other
+    const partway = climbAngle(Math.PI, 0.1);
+    expect(partway).toBeGreaterThan(Math.PI);
   });
 });

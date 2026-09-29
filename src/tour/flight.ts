@@ -135,3 +135,18 @@ export const planeLift = ({ phase, phaseMs }: Flight): number =>
 /** The camera rises mid-flight in proportion to the distance, and settles on arrival. */
 export const riseZoom = (z: number, { c, rise }: Flight): number =>
   Math.max(Z_MIN, z * (1 - 0.45 * Math.sin(Math.PI * c) * Math.min(1, rise / 1.4)));
+
+/** The nose is straight up by this share of the climb. */
+const NOSE_UP_BY = 0.3;
+
+/**
+ * The heading of a plane that is being sent away: the nose comes round to point straight up the
+ * screen over the first part of the climb, the short way, so it rises nose first instead of
+ * sliding upwards sideways.
+ */
+export const climbAngle = (angle: number, lift: number): number => {
+  const share = smooth(clamp(lift / NOSE_UP_BY, 0, 1));
+  if (share === 0) return angle;
+  const turn = ((((-Math.PI / 2 - angle) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  return angle + turn * share;
+};

@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { cleanSettings, DEFAULT_SETTINGS, settingsStore } from './settings';
+import { cleanSettings, DEFAULT_SETTINGS, SETTING_LIMITS, settingsStore } from './settings';
 
 describe('settingsStore', () => {
   it('starts from the defaults when nothing is kept', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ photoSeconds: 5, flightSeconds: 30, slideSeconds: 4, help: true });
     expect(settingsStore.get()).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('starts as fast as it goes: every slider at its left end', () => {
+    expect(DEFAULT_SETTINGS).toEqual({
+      photoSeconds: SETTING_LIMITS.photoSeconds[0],
+      flightSeconds: SETTING_LIMITS.flightSeconds[0],
+      slideSeconds: SETTING_LIMITS.slideSeconds[0],
+      help: true,
+    });
   });
 });
 
