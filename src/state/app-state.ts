@@ -1,4 +1,15 @@
+import type { Range } from '@/timeline/range';
+import type { Tour } from '@/tour/tour';
 import { createStore } from './store';
+
+/** The panel's card when a trip has ended: home, or the city it ended in. */
+export interface EndCard {
+  home: boolean;
+  cityKey: string | null;
+  /** The last album before the end flight. */
+  fromAlbumId: string;
+  tour: Tour | null;
+}
 
 export interface AppState {
   /**
@@ -8,6 +19,40 @@ export interface AppState {
   labelCityKey: string | null;
   /** True while the photo window or the archive is open: the world clock stops. */
   paused: boolean;
+  /** Album index (into archive.albums) in focus, -1 for none. */
+  focus: number;
+  /** The plane has landed at home after a trip. */
+  atHome: boolean;
+  /** A flight (or a camera turn) is under way. */
+  flying: boolean;
+  /** Length of the flight under way, for the caption. */
+  flightKm: number | null;
+  endCard: EndCard | null;
+  range: Range | null;
+  /** The range being dragged out on the timeline, before it is let go. */
+  picking: Range | null;
+  /** Yellow progress on; off after a new pick until the plane moves again. */
+  progress: boolean;
+  playing: boolean;
+  tour: Tour | null;
+  /** The tour that just ended, still shown above the end card. */
+  lastTour: Tour | null;
 }
 
-export const appStore = createStore<AppState>({ labelCityKey: null, paused: false });
+export const INITIAL_STATE: AppState = {
+  labelCityKey: null,
+  paused: false,
+  focus: -1,
+  atHome: false,
+  flying: false,
+  flightKm: null,
+  endCard: null,
+  range: null,
+  picking: null,
+  progress: true,
+  playing: false,
+  tour: null,
+  lastTour: null,
+};
+
+export const appStore = createStore<AppState>({ ...INITIAL_STATE });
