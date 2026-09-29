@@ -217,6 +217,39 @@
     }
   }
 
+  &__who {
+    padding: 4px 10px 12px;
+
+    b {
+      display: block;
+      font-size: 17px;
+    }
+
+    span {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    em {
+      font-style: normal;
+    }
+  }
+
+  &__house {
+    width: 18px;
+    height: 18px;
+  }
+
+  hr {
+    margin: 8px 0;
+    border: 0;
+    border-top: 1px solid rgb(255 255 255 / 10%);
+  }
+
   &__item {
     display: flex;
     justify-content: space-between;
@@ -228,6 +261,16 @@
     background: none;
     font-size: 14px;
     text-align: left;
+
+    small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: rgb(255 255 255 / 7%);
+    }
 
     &.is-primary {
       justify-content: center;

@@ -1,7 +1,8 @@
 import type { ArchivePage } from '@/state/app-state';
 import { appStore } from '@/state/app-state';
 import { closeArchive, openArchive } from '@/state/archive-nav';
-import { finishPhoto } from '@/state/layers';
+import { closeForm, finishPhoto, openForm } from '@/state/layers';
+import { userStore } from '@/state/user';
 import type { Director } from '@/tour/director';
 
 /** The pages a tour was started from, to come back to when it ends by itself. */
@@ -19,7 +20,16 @@ export const forgetReturn = () => {
 
 /** The one way into the archive from the main screen and the photo window. */
 export const goArchive = (page: ArchivePage) => {
+  if (!userStore.get().user) {
+    // the demo traveller has no archive of their own to show
+    openForm(appStore, {
+      kind: 'login',
+      why: 'Log in to open your archive. Until then the globe runs a demo traveller.',
+    });
+    return;
+  }
   if (appStore.get().photo) finishPhoto(appStore);
+  closeForm(appStore);
   openArchive(appStore, page, true);
 };
 

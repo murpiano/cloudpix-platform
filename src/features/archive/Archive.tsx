@@ -3,14 +3,18 @@ import type { World } from '@/app/boot';
 import { albumsByYear, coverOf, dateSpan, findPage, folderPhotos, plural, whenLabel } from '@/archive/pages';
 import type { Journey, PageData } from '@/archive/pages';
 import { visitYears } from '@/data/archive';
+import { addPhotos } from '@/data/edits';
+import { shrink } from '@/data/image';
 import { cityPhotos, photoUrl } from '@/data/photos';
 import { describeAlbum, photoKey, photoNote } from '@/data/social';
 import type { Album, City, Country, PhotoRef } from '@/data/types';
+import { DropZone } from '@/features/forms/DropZone';
 import { MONTHS } from '@/lib/dates';
 import { appStore } from '@/state/app-state';
-import type { ArchivePage } from '@/state/app-state';
+import type { ArchivePage, FormView } from '@/state/app-state';
 import { backArchive, closeArchive, openArchive, SECTIONS, sectionOf } from '@/state/archive-nav';
-import { openPhoto } from '@/state/layers';
+import { openForm, openPhoto } from '@/state/layers';
+import { canEdit, editArchive, ownerStore } from '@/state/owner';
 import { socialFor, socialStore } from '@/state/social';
 import { useStore } from '@/state/store';
 import type { Director } from '@/tour/director';
@@ -22,6 +26,9 @@ const go = (page: ArchivePage) => openArchive(appStore, page, false);
 /** The archive: a full-screen layer over the paused globe. */
 export function Archive({ world, director }: { world: World; director: Director }) {
   const view = useStore(appStore, (s) => s.archive);
+  // an edit changes the archive in place: this makes the page show it at once
+  useStore(ownerStore, (s) => s.rev);
+  const owner = canEdit();
   const [shown, setShown] = useState(false);
   const page = view?.stack[view.stack.length - 1];
   const data = page ? findPage(world.archive, page, world.home) : null;
@@ -83,17 +90,30 @@ export function Archive({ world, director }: { world: World; director: Director 
           )}
           <h2>{header.title}</h2>
           {header.sub && <p className="archive__sub">{header.sub}</p>}
-          {header.map && (
+          {(header.map || owner) && (
             <div className="archive__acts">
-              <button type="button" className="archive__btn is-star" onClick={() => header.map && showOnMap(director, header.map)}>
-                ◎ Show on map
-              </button>
+              {header.map && (
+                <button type="button" className="archive__btn is-star" onClick={() => header.map && showOnMap(director, header.map)}>
+                  ◎ Show on map
+                </button>
+              )}
+              {owner &&
+                editsOf(data).map((edit) => (
+                  <button
+                    key={edit.label}
+                    type="button"
+                    className="archive__btn"
+                    onClick={() => openForm(appStore, edit.form)}
+                  >
+                    {edit.label}
+                  </button>
+                ))}
             </div>
           )}
         </div>
       </div>
       <div className={`archive__grid${data.kind === 'album' ? ' archive__grid--photos' : ''}`} key={`grid-${JSON.stringify(page)}`}>
-        <PageBody data={data} world={world} />
+        <PageBody data={data} world={world} owner={owner} />
       </div>
     </section>
   );
@@ -179,7 +199,35 @@ const headerOf = (data: PageData): Header => {
   }
 };
 
-function PageBody({ data, world }: { data: PageData; world: World }) {
+/** What the owner can start from this page. */
+const editsOf = (data: PageData): { label: string; form: FormView }[] => {
+  const newAlbum = (cityKey: string | null, tripId: string | null) => ({
+    label: '+ New album',
+    form: { kind: 'album', id: null, cityKey, tripId } as FormView,
+  });
+  switch (data.kind) {
+    case 'trips':
+      return [{ label: '+ New trip', form: { kind: 'trip', id: null, albumIds: [] } }];
+    case 'trip':
+      return [
+        {
+          label: '✎ Edit trip',
+          form: { kind: 'trip', id: data.journey.id, albumIds: data.journey.albums.map((a) => a.id) },
+        },
+        newAlbum(null, data.journey.real ? data.journey.id : null),
+      ];
+    case 'city':
+      return [newAlbum(data.city.key, null)];
+    case 'album':
+      return [
+        { label: '✎ Edit album', form: { kind: 'album', id: data.album.id, cityKey: null, tripId: null } },
+      ];
+    default:
+      return [newAlbum(null, null)];
+  }
+};
+
+function PageBody({ data, world, owner }: { data: PageData; world: World; owner: boolean }) {
   switch (data.kind) {
     case 'trips':
       return <>{data.journeys.map((journey) => <TripCard key={journey.id} journey={journey} />)}</>;
@@ -203,7 +251,7 @@ function PageBody({ data, world }: { data: PageData; world: World }) {
     case 'albums':
       return <YearGroups albums={data.albums} showCity />;
     case 'album':
-      return <PhotoGrid album={data.album} />;
+      return <PhotoGrid album={data.album} owner={owner} />;
     case 'countries':
       return <>{data.countries.map((country) => <CountryCard key={country.id} country={country} />)}</>;
     case 'country':
@@ -332,28 +380,68 @@ function Folder({ album, showCity }: { album: Album; showCity: boolean }) {
   );
 }
 
-function PhotoGrid({ album }: { album: Album }) {
+function PhotoGrid({ album, owner }: { album: Album; owner: boolean }) {
   useStore(socialStore, (s) => s.byKey);
-  if (album.photos.length === 0) return <p className="archive__sub">No photos yet.</p>;
+  const add = (files: File[]) => {
+    void editArchive(async (data, repo) => {
+      const refs: PhotoRef[] = [];
+      for (const file of files) refs.push(await repo.addPhoto(await shrink(file), file.name));
+      addPhotos(data, album.id, refs);
+    });
+  };
+  const zone = owner ? (
+    <div className="archive__add">
+      <DropZone onFiles={add} />
+    </div>
+  ) : null;
+  if (album.photos.length === 0) {
+    return (
+      <>
+        <p className="archive__sub">No photos yet.</p>
+        {zone}
+      </>
+    );
+  }
   return (
     <>
       {album.photos.map((photo, index) => {
         const key = photoKey(photo);
         const social = socialFor(key);
+        const open = (element: HTMLElement) => {
+          const frame = element.querySelector('.archive__photo');
+          if (!frame) return;
+          const { x, y, width, height } = frame.getBoundingClientRect();
+          openPhoto(appStore, album.id, index, { x, y, width, height });
+        };
         return (
-          <button
-            type="button"
+          // a div, not a button: the owner's pencil is a button of its own inside it
+          <div
             key={key}
+            role="button"
+            tabIndex={0}
             className="archive__pic"
-            onClick={(event) => {
-              const frame = event.currentTarget.querySelector('.archive__photo');
-              if (!frame) return;
-              const { x, y, width, height } = frame.getBoundingClientRect();
-              openPhoto(appStore, album.id, index, { x, y, width, height });
+            onClick={(event) => open(event.currentTarget)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              open(event.currentTarget);
             }}
           >
             <div className="archive__photo">
               <img src={photoUrl(photo) ?? undefined} alt="" loading="lazy" data-photo-key={key} />
+              {owner && (
+                <button
+                  type="button"
+                  className="archive__pencil"
+                  aria-label="Edit photo"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openForm(appStore, { kind: 'photo', albumId: album.id, photoKey: key });
+                  }}
+                >
+                  ✎
+                </button>
+              )}
               <div className="archive__meta">
                 <span>
                   {social.liked ? '♥' : '♡'} {social.likes}
@@ -362,9 +450,10 @@ function PhotoGrid({ album }: { album: Album }) {
               </div>
             </div>
             <p className="archive__cap">{photoNote(photo)}</p>
-          </button>
+          </div>
         );
       })}
+      {zone}
     </>
   );
 }

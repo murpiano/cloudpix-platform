@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { World } from '@/app/boot';
+import { plural } from '@/archive/pages';
 import { journeyStats } from '@/data/stats';
+import { goArchive } from '@/features/archive/links';
 import { appStore } from '@/state/app-state';
-import { toggleMenu } from '@/state/layers';
+import { openForm, toggleMenu } from '@/state/layers';
+import { ownerStore } from '@/state/owner';
 import { SETTING_LIMITS, settingsStore } from '@/state/settings';
 import type { Settings } from '@/state/settings';
 import { useStore } from '@/state/store';
+import { logOut, userStore } from '@/state/user';
 import { albumTime } from '@/timeline/range';
+import { HouseIcon } from './HouseIcon';
 import './header.scss';
 
 /** The burger and the brand on the left; the stats and the gear on the right. */
@@ -69,15 +74,67 @@ export function Header({ world }: { world: World | null }) {
       )}
 
       <nav className={`header__menu header__nav${menu === 'nav' ? ' is-on' : ''}`} inert={menu !== 'nav'}>
-        {/* logging in comes with the owner mode (plan 5) */}
-        <button type="button" className="header__item is-primary" disabled>
-          Log in
-        </button>
-        <p>You are watching a demo traveller. Log in to keep your own trips, albums and photos.</p>
+        <NavMenu world={world} />
       </nav>
 
       {world && <SettingsMenu open={menu === 'settings'} />}
     </header>
+  );
+}
+
+function NavMenu({ world }: { world: World | null }) {
+  const user = useStore(userStore, (state) => state.user);
+  // the trip count in the menu follows the owner's edits
+  useStore(ownerStore, (state) => state.rev);
+
+  if (!user) {
+    return (
+      <>
+        <button
+          type="button"
+          className="header__item is-primary"
+          onClick={() => openForm(appStore, { kind: 'login', why: null })}
+        >
+          Log in
+        </button>
+        <p>You are watching a demo traveller. Log in to keep your own trips, albums and photos.</p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="header__who">
+        <b>{user.name}</b>
+        <span>
+          <HouseIcon />
+          <em>{`${user.home.name}, ${user.home.country}`}</em>
+        </span>
+      </div>
+      <button type="button" className="header__item" onClick={() => goArchive({ kind: 'trips' })}>
+        <span>Archive</span>
+        <small>{plural(world?.archive.trips.length ?? 0, 'trip')}</small>
+      </button>
+      <button
+        type="button"
+        className="header__item"
+        onClick={() => openForm(appStore, { kind: 'account' })}
+      >
+        <span>Account settings</span>
+        <small>email, password, home</small>
+      </button>
+      <hr />
+      <button
+        type="button"
+        className="header__item"
+        onClick={() => {
+          logOut();
+          location.reload();
+        }}
+      >
+        <span>Log out</span>
+      </button>
+    </>
   );
 }
 
