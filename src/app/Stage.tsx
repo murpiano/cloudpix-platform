@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Archive } from '@/features/archive/Archive';
 import { useArchiveReturn } from '@/features/archive/useArchiveReturn';
 import { GlobeStage } from '@/features/globe/GlobeStage';
+import { Forms } from '@/features/forms/Forms';
 import { useKeys } from '@/features/keys/useKeys';
 import { Lightbox } from '@/features/lightbox/Lightbox';
 import { AlbumPanel } from '@/features/panel/AlbumPanel';
@@ -45,6 +46,7 @@ export function Stage({ world }: { world: World }) {
       <Timeline archive={world.archive} />
       <Archive world={world} director={director} />
       <Lightbox world={world} />
+      <Forms world={world} />
     </DirectorContext>
   );
 }
