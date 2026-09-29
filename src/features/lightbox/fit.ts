@@ -8,7 +8,12 @@ export const fitRect = (box: Rect, aspect: number): Rect => {
     height = box.height;
     width = height * aspect;
   }
-  return { x: box.x + (box.width - width) / 2, y: box.y + (box.height - height) / 2, width, height };
+  return {
+    x: box.x + (box.width - width) / 2,
+    y: box.y + (box.height - height) / 2,
+    width,
+    height,
+  };
 };
 
 /** The transform (origin at the top-left) that lays `from` over `to`. */

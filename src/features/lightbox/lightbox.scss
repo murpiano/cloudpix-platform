@@ -168,19 +168,67 @@
     cursor: pointer;
   }
 
-  &__img {
-    position: fixed;
+  // the row of slides: every slide the same size, so the frame never changes between photos
+  &__row {
+    --frame: 100%; // a slide is this wide, of the stage
+    --slot: 40%; // and a step of the row moves this far, of a slide
+
+    position: absolute;
+    inset: 0;
     z-index: 30;
-    max-width: none;
-    object-fit: cover;
+  }
+
+  &__slide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: var(--frame);
+    margin-left: calc(var(--frame) / -2);
+    overflow: hidden;
     border-radius: 10px;
+    background: #0b1020;
     transform-origin: 0 0;
+    transform: translateX(calc(var(--offset) * var(--slot) + var(--pull, 0px)));
+    transition:
+      transform 0.7s var(--ease),
+      opacity 0.7s ease;
     will-change: transform;
 
-    &.is-under {
-      z-index: 29;
-      animation: lightbox-under 0.7s ease forwards;
+    // the neighbours wait out of sight, and come in as the row moves
+    &.is-near,
+    &.is-far {
+      opacity: 0;
+      pointer-events: none;
     }
+  }
+
+  &__row.is-pulled &__slide {
+    transition: none;
+  }
+
+  // the photo whole, and its own blurred and darkened self to fill the frame round it
+  &__backdrop {
+    position: absolute;
+    inset: -30px;
+    background-position: center;
+    background-size: cover;
+    filter: blur(26px) brightness(0.55) saturate(1.2);
+  }
+
+  &__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: contain;
+    user-select: none;
+  }
+
+  // while the window closes the photo flies back alone
+  &:not(.is-on) &__slide:not(.is-current) {
+    opacity: 0;
   }
 
   &__nav {
@@ -422,20 +470,18 @@
       bottom: -40px;
     }
 
+    // a phone turns the photos with a finger: the neighbours peek in from either side
     &__nav {
-      width: 40px;
-      height: 40px;
-      margin-top: -20px;
+      display: none;
     }
-  }
-}
 
-@keyframes lightbox-under {
-  from {
-    opacity: 1;
-  }
+    &__row {
+      --frame: 84%;
+      --slot: 106%;
+    }
 
-  to {
-    opacity: 0;
+    &__slide.is-near {
+      opacity: 0.5;
+    }
   }
 }

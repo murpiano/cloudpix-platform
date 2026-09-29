@@ -24,7 +24,10 @@ describe('fitRect', () => {
 describe('flyTransform', () => {
   it('moves and scales a box onto another from its top-left corner', () => {
     expect(
-      flyTransform({ x: 100, y: 100, width: 400, height: 200 }, { x: 10, y: 20, width: 200, height: 50 }),
+      flyTransform(
+        { x: 100, y: 100, width: 400, height: 200 },
+        { x: 10, y: 20, width: 200, height: 50 },
+      ),
     ).toBe('translate(-90px, -80px) scale(0.5, 0.25)');
   });
 });

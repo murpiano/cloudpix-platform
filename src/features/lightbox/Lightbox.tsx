@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import type { CSSProperties } from 'react';
 import type { World } from '@/app/boot';
 import { creditLine, photoUrl } from '@/data/photos';
 import { describeAlbum, photoKey, photoNote } from '@/data/social';
@@ -14,13 +14,14 @@ import { closePhoto, finishPhoto, stepPhoto, toggleSlideshow } from '@/state/lay
 import { SETTING_LIMITS, settingsStore } from '@/state/settings';
 import { commentPhoto, likePhoto, socialFor, socialStore } from '@/state/social';
 import { useStore } from '@/state/store';
-import { fitRect, flyTransform } from './fit';
+import { indexAt, slidePositions, stepDelta } from './carousel';
+import { flyTransform } from './fit';
 import './lightbox.scss';
 
 const ZOOM_MS = 800;
-const SLIDE_MS = 700;
-const SLIDE_PX = 70;
 const SWIPE_PX = 40;
+/** A press that moves this far is a swipe, not a click. */
+const SWIPE_START_PX = 6;
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 /** The photo window: the photo large, its story on the left, likes and comments on the right. */
@@ -33,12 +34,20 @@ export function Lightbox({ world }: { world: World }) {
 
 function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; album: Album }) {
   const stage = useRef<HTMLDivElement>(null);
-  const swipe = useRef<{ x: number; used: boolean } | null>(null);
+  const swipe = useRef<{ x: number; used: boolean; touch: boolean } | null>(null);
+  // how far a finger has pulled the row, while it is down
+  const [pull, setPull] = useState<number | null>(null);
+  // the slide in front, counted on for ever round the loop, so the row only ever moves along
+  const [position, setPosition] = useState(photo.index);
+  const [seen, setSeen] = useState(photo.index);
+  if (photo.index !== seen) {
+    setSeen(photo.index);
+    setPosition(position + stepDelta(seen, photo.index, album.photos.length, photo.dir));
+  }
   const slideSeconds = useStore(settingsStore, (s) => s.slideSeconds);
   const [shown, setShown] = useState(false);
   const count = album.photos.length;
   const current = album.photos[photo.index];
-  const previous = photo.previous === null ? undefined : album.photos[photo.previous];
   const key = current ? photoKey(current) : '';
   const kept = useStore(socialStore, (s) => s.byKey.get(key));
   const social = kept ?? socialFor(key);
@@ -85,7 +94,7 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
   // closing: the photo flies back into the tile now showing it, or fades if there is none
   useEffect(() => {
     if (!photo.closing) return;
-    const image = stage.current?.querySelector<HTMLImageElement>('.lightbox__img.is-current');
+    const image = stage.current?.querySelector<HTMLImageElement>('.lightbox__slide.is-current');
     // the tile showing this photo now: in the archive when it is open (the panel lies under it)
     const tiles = [
       ...document.querySelectorAll<HTMLElement>(`[data-photo-key="${CSS.escape(key)}"]`),
@@ -144,40 +153,47 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
           const control =
             event.target instanceof Element &&
             event.target.closest('.lightbox__bar, .lightbox__nav');
-          swipe.current = control ? null : { x: event.clientX, used: false };
+          swipe.current = control
+            ? null
+            : { x: event.clientX, used: false, touch: event.pointerType !== 'mouse' };
+        }}
+        onPointerMove={(event) => {
+          const start = swipe.current;
+          if (!start) return;
+          const distance = event.clientX - start.x;
+          if (Math.abs(distance) > SWIPE_START_PX) start.used = true;
+          // a finger pulls the row along with it; a mouse only turns the page on letting go
+          if (start.touch && start.used) setPull(distance);
         }}
         onPointerUp={(event) => {
           const start = swipe.current;
           if (!start) return;
           const distance = event.clientX - start.x;
+          setPull(null);
           if (Math.abs(distance) > SWIPE_PX) {
             start.used = true;
             stepPhoto(appStore, count, distance < 0 ? 1 : -1);
           }
         }}
+        onPointerCancel={() => setPull(null)}
       >
-        {previous && photo.previous !== photo.index && (
-          // the same key the photo had while it was the current one: it is not made again, so it
-          // stays on the screen and only slides and fades away under the new one
-          <StageImage
-            key={`photo-${photo.previous}`}
-            src={photoUrl(previous)}
-            stage={stage}
-            from={null}
-            dir={photo.dir}
-            current={false}
-          />
-        )}
-        {current && (
-          <StageImage
-            key={`photo-${photo.index}`}
-            src={photoUrl(current)}
-            stage={stage}
-            from={photo.dir === 0 ? photo.from : null}
-            dir={photo.dir}
-            current
-          />
-        )}
+        <div
+          className={`lightbox__row${pull !== null ? ' is-pulled' : ''}`}
+          style={pull !== null ? ({ '--pull': `${pull}px` } as CSSProperties) : undefined}
+        >
+          {slidePositions(position, count).map((at) => {
+            const shown = album.photos[indexAt(at, count)];
+            if (!shown) return null;
+            return (
+              <Slide
+                key={at}
+                src={photoUrl(shown)}
+                offset={at - position}
+                from={photo.dir === 0 && at === position ? photo.from : null}
+              />
+            );
+          })}
+        </div>
         {count > 1 && (
           <>
             <button
@@ -327,99 +343,37 @@ function CommentForm({ onSend }: { onSend: (text: string) => void }) {
 }
 
 /**
- * One photo on the stage, fitted into it. The one opened grows from where it was clicked; the
- * next one slides in from its side; the one under it just waits to be covered.
+ * One slide of the row. Every slide is the same size, so photos of any shape turn without the
+ * frame changing: the photo sits whole inside it, and its own blurred self fills what is left.
+ * The one that opens the window grows out of the tile it was clicked in.
  */
-function StageImage({
-  src,
-  stage,
-  from,
-  dir,
-  current,
-}: {
-  src: string | null;
-  stage: RefObject<HTMLDivElement | null>;
-  from: Rect | null;
-  dir: -1 | 0 | 1;
-  current: boolean;
-}) {
-  const image = useRef<HTMLImageElement>(null);
+function Slide({ src, offset, from }: { src: string | null; offset: number; from: Rect | null }) {
+  const slide = useRef<HTMLDivElement>(null);
   const played = useRef(false);
-  const [fit, setFit] = useState<Rect | null>(null);
-
-  const measure = () => {
-    const element = image.current;
-    const box = stage.current?.getBoundingClientRect();
-    if (!element || !box || !element.naturalWidth) return;
-    setFit(fitRect(box, element.naturalWidth / element.naturalHeight));
-  };
-
-  useEffect(() => {
-    const onResize = () => {
-      const element = image.current;
-      const box = stage.current?.getBoundingClientRect();
-      if (element && box && element.naturalWidth) {
-        setFit(fitRect(box, element.naturalWidth / element.naturalHeight));
-      }
-    };
-    addEventListener('resize', onResize);
-    return () => removeEventListener('resize', onResize);
-  }, [stage]);
-
-  // the photo that is being turned away from slides out the other way while it fades
-  const wasCurrent = useRef(current);
-  useLayoutEffect(() => {
-    const element = image.current;
-    if (wasCurrent.current && !current && dir !== 0 && element) {
-      element.animate([{ transform: 'none' }, { transform: `translateX(${-dir * SLIDE_PX}px)` }], {
-        duration: SLIDE_MS,
-        easing: EASE,
-        fill: 'forwards',
-      });
-    }
-    wasCurrent.current = current;
-  }, [current, dir]);
 
   useLayoutEffect(() => {
-    const element = image.current;
-    if (!fit || !element || !current || played.current) return;
+    const element = slide.current;
+    if (!element || !from || played.current) return;
     played.current = true;
-    if (dir === 0 && from) {
-      element.animate(
-        [
-          { transform: flyTransform(fit, from), borderRadius: '14px' },
-          { transform: 'none', borderRadius: '10px' },
-        ],
-        { duration: ZOOM_MS, easing: EASE },
-      );
-    } else if (dir !== 0) {
-      element.animate(
-        [
-          { transform: `translateX(${dir * SLIDE_PX}px)`, opacity: 0 },
-          { transform: 'none', opacity: 1 },
-        ],
-        { duration: SLIDE_MS, easing: EASE },
-      );
-    }
-  }, [fit, current, dir, from]);
+    const to = element.getBoundingClientRect();
+    element.animate(
+      [
+        { transform: flyTransform(to, from), borderRadius: '14px' },
+        { transform: 'none', borderRadius: '10px' },
+      ],
+      { duration: ZOOM_MS, easing: EASE },
+    );
+  }, [from]);
 
+  const distance = Math.abs(offset);
   return (
-    <img
-      src={src ?? undefined}
-      alt=""
-      draggable={false}
-      className={`lightbox__img ${current ? 'is-current' : 'is-under'}`}
-      onLoad={measure}
-      ref={(element) => {
-        image.current = element;
-        // a photo that is already loaded is measured before the first paint: no hidden frame
-        if (element?.complete && element.naturalWidth && fit === null) measure();
-      }}
-      style={
-        fit
-          ? { left: fit.x, top: fit.y, width: fit.width, height: fit.height }
-          : { visibility: 'hidden' }
-      }
-    />
+    <div
+      ref={slide}
+      className={`lightbox__slide${offset === 0 ? ' is-current' : distance === 1 ? ' is-near' : ' is-far'}`}
+      style={{ '--offset': offset } as CSSProperties}
+    >
+      {src && <div className="lightbox__backdrop" style={{ backgroundImage: `url("${src}")` }} />}
+      {src && <img className="lightbox__photo" src={src} alt="" draggable={false} />}
+    </div>
   );
 }
