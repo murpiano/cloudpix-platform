@@ -90,7 +90,11 @@ export interface Progress {
 }
 
 /** Reached: on the timeline up to the album in focus, from the start of the picked range. */
-export const isReached = (index: number, time: number, { on, focus, ahead, range }: Progress): boolean => {
+export const isReached = (
+  index: number,
+  time: number,
+  { on, focus, ahead, range }: Progress,
+): boolean => {
   if (!on || focus < 0) return false;
   if (index > (ahead ? focus - 1 : focus)) return false;
   return range === null || time >= range.lo - EPS;
@@ -103,3 +107,17 @@ export const stamp = (t: number): string => {
 
 export const rangeLabel = ({ lo, hi, year }: Range): string =>
   year !== undefined ? String(year) : lo === hi ? stamp(lo) : `${stamp(lo)} – ${stamp(hi)}`;
+
+const EDGE_PX = 44;
+const EDGE_MAX = 10;
+
+/**
+ * How far to move a strip this frame while a finger holds a handle at `x`: nothing away from the
+ * edges, then faster the closer to an edge (or past it), and never faster than a fixed step.
+ */
+export const edgeSpeed = (x: number, left: number, right: number): number => {
+  const push = (depth: number) => Math.min(EDGE_MAX, Math.ceil((depth / EDGE_PX) * EDGE_MAX));
+  if (x < left + EDGE_PX) return -push(left + EDGE_PX - x);
+  if (x > right - EDGE_PX) return push(x - (right - EDGE_PX));
+  return 0;
+};

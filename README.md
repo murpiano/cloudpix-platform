@@ -1,4 +1,6 @@
-# CloudPix
+# My World
+
+*Memories of the places I've been.*
 
 A personal travel archive on a night globe. Every place you have been is a light; click one and
 the plane flies there, the album opens, and the photos from that day come up one by one.

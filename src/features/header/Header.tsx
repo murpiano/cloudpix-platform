@@ -46,7 +46,7 @@ export function Header({ world }: { world: World | null }) {
           <span />
         </button>
         <div className="header__brand">
-          cloudpix<small>every trip I have taken</small>
+          My World<small>Memories of the places I&apos;ve been.</small>
         </div>
       </div>
 

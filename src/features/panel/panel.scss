@@ -45,7 +45,29 @@
     }
   }
 
+  // only on a phone: a keyboard has Esc for this
+  &__close {
+    display: none;
+  }
+
   @include mobile {
+    &__close {
+      position: absolute;
+      z-index: 3;
+      top: -6px;
+      right: 0;
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgb(127 137 163 / 35%);
+      border-radius: 50%;
+      background: rgb(12 16 30 / 80%);
+      font-size: 14px;
+      color: var(--text);
+      pointer-events: auto;
+    }
+
     top: 80px;
     right: 16px;
     left: 16px;

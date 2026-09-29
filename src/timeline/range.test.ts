@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   albumTime,
+  edgeSpeed,
   isReached,
   nearestIndex,
   pickedRange,
@@ -108,5 +109,25 @@ describe('labels', () => {
     expect(rangeLabel({ lo: at(2019, 3), hi: at(2021, 10) })).toBe('Mar 2019 – Oct 2021');
     expect(rangeLabel({ lo: at(2019, 3), hi: at(2019, 3) })).toBe('Mar 2019');
     expect(rangeLabel(yearRange(2023))).toBe('2023');
+  });
+});
+
+describe('edgeSpeed', () => {
+  it('holds still away from the edges', () => {
+    expect(edgeSpeed(200, 0, 390)).toBe(0);
+  });
+
+  it('carries the strip left near the left edge, faster the closer the finger is', () => {
+    expect(edgeSpeed(30, 0, 390)).toBeLessThan(0);
+    expect(edgeSpeed(2, 0, 390)).toBeLessThan(edgeSpeed(30, 0, 390));
+  });
+
+  it('carries the strip right near the right edge', () => {
+    expect(edgeSpeed(380, 0, 390)).toBeGreaterThan(0);
+  });
+
+  it('never runs faster than a fixed step, even with the finger off the screen', () => {
+    expect(edgeSpeed(-400, 0, 390)).toBe(-10);
+    expect(edgeSpeed(900, 0, 390)).toBe(10);
   });
 });

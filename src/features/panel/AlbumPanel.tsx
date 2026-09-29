@@ -37,6 +37,7 @@ export function AlbumPanel({ world }: { world: World }) {
 
   return (
     <section className={`panel${album ? '' : ' is-hidden'}`} aria-label="The place in focus">
+      {album && <LetGo />}
       <div className="panel__media">
         {album && <PanelHead archive={archive} list={list} focus={focus} scope={scope} />}
         {album && endCard && <EndSlot world={world} />}
@@ -44,6 +45,21 @@ export function AlbumPanel({ world }: { world: World }) {
       </div>
       {album && <Caption world={world} />}
     </section>
+  );
+}
+
+/** A cross that lets go of the place in focus: on a phone there is no Esc key. */
+function LetGo() {
+  const director = useDirector();
+  return (
+    <button
+      type="button"
+      className="panel__close"
+      aria-label="Let go of this place"
+      onClick={() => director.escape()}
+    >
+      ✕
+    </button>
   );
 }
 

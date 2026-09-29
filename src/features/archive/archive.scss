@@ -380,11 +380,28 @@
 
   @include mobile {
     &__head {
-      padding-inline: 16px;
+      padding-inline: 12px;
+    }
+
+    // the close, back and five tabs have to share 390 px: smaller circles, tighter tabs
+    &__bar {
+      gap: 6px;
+    }
+
+    &__round {
+      width: 36px;
+      height: 36px;
+      font-size: 14px;
+    }
+
+    &__tabs {
+      gap: 0;
+      padding: 3px;
     }
 
     &__tabs button {
-      padding: 7px 11px;
+      padding: 6px 8px;
+      font-size: 12px;
     }
 
     &__grid {
