@@ -32,8 +32,8 @@ export function AboutForm({ onClose }: { onClose: () => void }) {
             The code is open source under the{' '}
             {link('https://github.com/murpiano/my-world/blob/main/LICENSE', 'MIT license')}. The
             demo photos come from {link('https://commons.wikimedia.org', 'Wikimedia Commons')}; the
-            author and the license of each one are under it. They stay under their own licenses
-            (CC BY, CC BY-SA, CC0 or public domain). The list of cities comes from{' '}
+            author and the license of each one are under it. They stay under their own licenses (CC
+            BY, CC BY-SA, CC0 or public domain). The list of cities comes from{' '}
             {link('https://www.geonames.org', 'GeoNames')} (CC BY 4.0).
           </p>
         </section>
@@ -42,8 +42,9 @@ export function AboutForm({ onClose }: { onClose: () => void }) {
           <p>
             No cookies, no analytics, no ads, no tracking. There is no server: what you add while
             logged in — your name, trips, albums and photos — stays in this browser only, in local
-            storage, and never leaves your device. You can download a backup of it in the account settings. The fonts are loaded from Google Fonts, so
-            Google sees your IP address when it serves them.
+            storage, and never leaves your device. You can download a backup of it in the account
+            settings. The fonts are loaded from Google Fonts, so Google sees your IP address when it
+            serves them.
           </p>
         </section>
         <section>

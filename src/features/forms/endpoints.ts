@@ -1,18 +1,32 @@
 import type { Archive } from '@/data/archive';
-import type { Endpoint, Place } from '@/data/types';
+import { cityFor } from '@/data/edits';
+import type { PickedPlace } from '@/data/places';
+import type { ArchiveData, Endpoint } from '@/data/types';
 
-/** Where a trip starts and ends: home, or any city already on the map. */
-export const endpointOptions = (
-  archive: Archive,
-  home: Place,
-): { value: string; label: string }[] => [
-  { value: 'home', label: `Home · ${home.name}` },
-  ...archive.cities
-    .map((city) => ({ value: city.key, label: `${city.name}, ${city.country.name}` }))
-    .sort((a, b) => a.label.localeCompare(b.label)),
-];
+/** Where a trip starts or ends in the form: home, or any city of the world. */
+export type EndChoice = 'home' | PickedPlace;
 
-export const endpointOf = (value: string): Endpoint =>
-  value === 'home' ? { home: true } : { cityKey: value };
+/** The choice a trip already has: its own city, or home. */
+export const endChoiceOf = (end: Endpoint, archive: Archive): EndChoice => {
+  if ('cityKey' in end) {
+    const city = archive.cityByKey.get(end.cityKey);
+    if (city) {
+      return {
+        name: city.name,
+        country: city.country.name,
+        countryId: city.country.id,
+        lat: city.lat,
+        lon: city.lon,
+        cityKey: city.key,
+      };
+    }
+  }
+  return 'home';
+};
 
-export const endpointValue = (end: Endpoint): string => ('home' in end ? 'home' : end.cityKey);
+/**
+ * The endpoint to store. A city that is not in the archive yet is made in it, with no albums: it
+ * gets no light of its own, but the plane can fly there.
+ */
+export const endpointFor = (data: ArchiveData, choice: EndChoice): Endpoint =>
+  choice === 'home' ? { home: true } : { cityKey: cityFor(data, choice).key };

@@ -72,7 +72,10 @@ export const toggleLike = (social: Social): Social => ({
 export const addComment = (social: Social, text: string): Social => {
   const line = text.trim();
   if (!line) return social;
-  return { ...social, comments: [...social.comments, { who: 'You', text: line, when: 'just now' }] };
+  return {
+    ...social,
+    comments: [...social.comments, { who: 'You', text: line, when: 'just now' }],
+  };
 };
 
 /** The album's description: demo text until the owner writes one. */

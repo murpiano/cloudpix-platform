@@ -1,6 +1,6 @@
 # My World
 
-*Memories of the places I've been.*
+_Memories of the places I've been._
 
 A personal travel archive on a night globe. Every place you have been is a light; click one and
 the plane flies there, the album opens, and the photos from that day come up one by one.
@@ -43,7 +43,7 @@ the tour ends by itself, the archive fades back in where you left it.
 
 Logged in, the archive also edits: a trip (a name, where it starts and ends, which albums belong
 to it), an album (a title, a place, a day, a trip, and photos dropped straight in), and a photo
-(its caption, or away with it). Any city of the world can be picked (a list of about 34,000 from
+(its caption, or away with it). Any city of the world can be picked (a list of about 70,000 towns and cities, searchable in English and Russian, from
 GeoNames, loaded when a place field opens); a place that is not on the map yet becomes a new light,
 and a new country joins the list. Everything is kept in your browser, so the account settings can
 download the whole archive, photos included, as one backup file and restore it later, here or in

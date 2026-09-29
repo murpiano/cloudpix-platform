@@ -28,7 +28,8 @@ export interface Repository {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 const str = (value: unknown): value is string => typeof value === 'string';
-const num = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const num = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 
 const cleanPhoto = (raw: unknown): PhotoRef | null => {
   if (!isObject(raw)) return null;

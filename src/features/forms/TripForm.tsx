@@ -4,7 +4,9 @@ import { addTrip, deleteTrip, freshId, updateTrip } from '@/data/edits';
 import { MONTHS } from '@/lib/dates';
 
 import { ConfirmButton } from './ConfirmButton';
-import { endpointOf, endpointOptions, endpointValue } from './endpoints';
+import { endChoiceOf, endpointFor } from './endpoints';
+import type { EndChoice } from './endpoints';
+import { PlaceField } from './PlaceField';
 import { Acts, Sheet } from './Sheet';
 import { useEdit } from './useEdit';
 
@@ -22,10 +24,12 @@ export function TripForm({
 }) {
   const { archive } = world;
   const trip = id ? (archive.trips.find((one) => one.id === id) ?? null) : null;
-  const options = endpointOptions(archive, world.home);
+  const homeLabel = `Home · ${world.home.name}`;
   const [name, setName] = useState(trip?.name ?? '');
-  const [start, setStart] = useState(endpointValue(trip?.start ?? { home: true }));
-  const [end, setEnd] = useState(endpointValue(trip?.end ?? { home: true }));
+  const [start, setStart] = useState<EndChoice>(
+    endChoiceOf(trip?.start ?? { home: true }, archive),
+  );
+  const [end, setEnd] = useState<EndChoice>(endChoiceOf(trip?.end ?? { home: true }, archive));
   const [picked, setPicked] = useState<string[]>(trip ? [...trip.albumIds] : albumIds);
   const newest = [...archive.albums].reverse();
   const { trouble, run } = useEdit(onClose);
@@ -36,13 +40,13 @@ export function TripForm({
     );
 
   const submit = () => {
-    const fields = {
-      name: name.trim(),
-      start: endpointOf(start),
-      end: endpointOf(end),
-      albumIds: picked,
-    };
     run((data) => {
+      const fields = {
+        name: name.trim(),
+        start: endpointFor(data, start),
+        end: endpointFor(data, end),
+        albumIds: picked,
+      };
       if (trip) updateTrip(data, trip.id, fields);
       else addTrip(data, freshId('t'), fields);
     });
@@ -63,28 +67,24 @@ export function TripForm({
           onChange={(event) => setName(event.target.value)}
         />
       </label>
-      <div className="sheet__row">
-        <label className="sheet__field" htmlFor="fStart">
-          Starts from
-          <select id="fStart" value={start} onChange={(event) => setStart(event.target.value)}>
-            {options.map((one) => (
-              <option key={one.value} value={one.value}>
-                {one.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="sheet__field" htmlFor="fEnd">
-          Ends at
-          <select id="fEnd" value={end} onChange={(event) => setEnd(event.target.value)}>
-            {options.map((one) => (
-              <option key={one.value} value={one.value}>
-                {one.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <PlaceField
+        id="fStart"
+        label="Starts from"
+        archive={archive}
+        value={start === 'home' ? null : start}
+        text={homeLabel}
+        home={{ label: homeLabel, onPick: () => setStart('home') }}
+        onPick={(place) => place && setStart(place)}
+      />
+      <PlaceField
+        id="fEnd"
+        label="Ends at"
+        archive={archive}
+        value={end === 'home' ? null : end}
+        text={homeLabel}
+        home={{ label: homeLabel, onPick: () => setEnd('home') }}
+        onPick={(place) => place && setEnd(place)}
+      />
       <div className="sheet__field">
         Albums
         <div className="sheet__checks">

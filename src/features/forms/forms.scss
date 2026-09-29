@@ -7,6 +7,7 @@
   padding: 16px;
   background: rgb(2 4 10 / 72%);
   backdrop-filter: blur(6px);
+  color-scheme: dark;
   opacity: 0;
   transition: opacity 0.35s var(--ease);
 
@@ -72,6 +73,16 @@
       }
     }
 
+    select {
+      color-scheme: dark;
+      background: #141a30;
+    }
+
+    option {
+      background: #141a30;
+      color: var(--text);
+    }
+
     textarea {
       min-height: 76px;
       resize: vertical;
@@ -84,41 +95,73 @@
     gap: 12px;
   }
 
-  &__sugg {
+  // the list of cities under a city field: drawn on a dark ground, only the rows in view are made
+  &__drop-wrap {
     position: absolute;
-    z-index: 2;
+    z-index: 3;
     right: 0;
     left: 0;
-    max-height: 240px;
+    margin-top: 4px;
+  }
+
+  &__list {
+    position: relative;
+    max-height: 300px;
     overflow-y: auto;
+    border: 1px solid rgb(255 255 255 / 10%);
     border-radius: 10px;
     background: #141a30;
     box-shadow: 0 18px 40px rgb(0 0 0 / 55%);
+    color-scheme: dark;
+    overscroll-behavior: contain;
+
+    > div {
+      position: relative;
+    }
 
     button {
+      position: absolute;
+      right: 0;
+      left: 0;
       display: flex;
       gap: 10px;
+      align-items: center;
       justify-content: space-between;
-      width: 100%;
-      padding: 9px 12px;
+      padding: 0 12px;
       border: 0;
       background: none;
       color: var(--text);
       font: inherit;
+      font-size: 15px;
       letter-spacing: normal;
       text-align: left;
       text-transform: none;
+      white-space: nowrap;
       cursor: pointer;
 
       small {
+        overflow: hidden;
+        text-overflow: ellipsis;
         color: var(--muted);
+        font-size: 12px;
       }
 
-      &:hover,
-      &:focus-visible {
-        background: rgb(255 255 255 / 7%);
+      &.is-active {
+        background: rgb(255 255 255 / 8%);
       }
     }
+  }
+
+  &__chev {
+    position: absolute;
+    right: 14px;
+    bottom: 17px;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--muted);
+    border-bottom: 1.5px solid var(--muted);
+    transform: rotate(45deg);
+    pointer-events: none;
   }
 
   &__acts {
@@ -187,10 +230,19 @@
     border: 1px solid rgb(255 255 255 / 10%);
     border-radius: 10px;
 
+    input[type='checkbox'] {
+      flex: none;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--lamp);
+    }
+
     label {
       display: flex;
-      gap: 8px;
-      align-items: baseline;
+      gap: 10px;
+      align-items: center;
       padding: 7px 10px;
       color: var(--text);
       font-size: 14px;
@@ -273,4 +325,12 @@
   flex: 1 1 100%;
   font-size: 13px;
   color: var(--text);
+}
+
+.sheet__note.is-problem {
+  color: #ff9f8a;
+}
+
+.sheet__field [role='combobox'] {
+  padding-right: 34px;
 }

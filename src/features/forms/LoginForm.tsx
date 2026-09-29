@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Archive } from '@/data/archive';
 import type { PickedPlace } from '@/data/places';
 import { logIn } from '@/state/user';
+import { accountProblem } from './fields';
 import { PlaceField } from './PlaceField';
 import { Acts, Sheet } from './Sheet';
 
@@ -17,10 +18,12 @@ export function LoginForm({
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
   const [home, setHome] = useState<PickedPlace | null>(null);
+  const problem = accountProblem({ name, email, password: pass, home });
 
   const submit = () => {
-    if (!name.trim() || !home) return;
+    if (problem || !home) return;
     const { name: city, country, countryId, lat, lon } = home;
     logIn({
       name: name.trim(),
@@ -57,7 +60,13 @@ export function LoginForm({
       </label>
       <label className="sheet__field" htmlFor="fPass">
         Password
-        <input id="fPass" type="password" autoComplete="current-password" />
+        <input
+          id="fPass"
+          type="password"
+          autoComplete="current-password"
+          value={pass}
+          onChange={(event) => setPass(event.target.value)}
+        />
       </label>
       <PlaceField id="fHome" label="Home base" archive={archive} value={home} onPick={setHome} />
       <Acts>
@@ -67,12 +76,13 @@ export function LoginForm({
         <button
           type="button"
           className="sheet__btn is-main"
-          disabled={!name.trim() || !home}
+          disabled={problem !== null}
           onClick={submit}
         >
           Log in
         </button>
       </Acts>
+      {problem && (name || email || pass) && <p className="sheet__note is-problem">{problem}</p>}
       <p className="sheet__note">
         There is no server yet. Your archive stays in this browser; it starts as a copy of the demo,
         so there is something to play with.

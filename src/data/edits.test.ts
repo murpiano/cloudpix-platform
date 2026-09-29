@@ -97,6 +97,25 @@ describe('cityFor', () => {
   });
 });
 
+describe('a city with no albums', () => {
+  it('stays for a trip that starts or ends there, and goes with the last album otherwise', () => {
+    const data = empty();
+    const rome = cityFor(data, ROME);
+    addTrip(data, 't1', {
+      name: 'To Rome',
+      start: { home: true },
+      end: { cityKey: rome.key },
+      albumIds: [],
+    });
+    addAlbum(data, 'a1', fields());
+    deleteAlbum(data, 'a1');
+    // Paris had only that album and no trip: gone with its country; Rome is a trip's end: kept
+    expect(data.countries.map((country) => country.id)).toEqual(['380']);
+    deleteTrip(data, 't1');
+    expect(data.countries).toEqual([]);
+  });
+});
+
 describe('albums', () => {
   it('adds an album to its city with no photos yet', () => {
     const data = empty();
@@ -124,7 +143,8 @@ describe('albums', () => {
     expect(data.countries).toHaveLength(1);
     updateAlbum(data, 'a1', fields({ place: ROME }));
     const cities = data.countries.flatMap((country) => country.cities);
-    expect(cities.find((city) => city.key === 'paris')?.albums).toEqual([]);
+    // Paris has nothing left and no trip needs it: it is gone
+    expect(cities.find((city) => city.key === 'paris')).toBeUndefined();
     expect(cities.find((city) => city.key === 'rome')?.albums[0]?.title).toBe('Roofs');
   });
 
@@ -160,7 +180,7 @@ describe('albums', () => {
     const own: PhotoRef = { kind: 'own', id: 'p1', name: 'one.jpg' };
     addPhotos(data, 'a1', [own]);
     expect(deleteAlbum(data, 'a1')).toEqual([own]);
-    expect(data.countries[0]?.cities[0]?.albums).toEqual([]);
+    expect(data.countries).toEqual([]);
     expect(data.trips[0]?.albumIds).toEqual([]);
   });
 });

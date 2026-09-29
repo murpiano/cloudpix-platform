@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { linkArchive } from './archive';
-import { GAZETTEER, listPlaces, searchPlaces } from './places';
+import { browsePlaces, GAZETTEER, listed, listPlaces, searchPlaces } from './places';
 import type { ArchiveData } from './types';
 
 const data = (): ArchiveData => ({
@@ -102,5 +102,86 @@ describe('searchPlaces in a long list', () => {
     const found = searchPlaces(own, 'paris', list);
     expect(found.filter((place) => place.name === 'Paris')).toHaveLength(1);
     expect(found[0]?.cityKey).toBe('paris');
+  });
+});
+
+describe('searchPlaces in Russian, and browsing', () => {
+  const list = [
+    listed(
+      { name: 'Saint Petersburg', country: 'Russia', countryId: '643', lat: 59.94, lon: 30.31 },
+      { ru: 'Санкт-Петербург', countryRu: 'Россия' },
+    ),
+    listed(
+      { name: 'Moscow', country: 'Russia', countryId: '643', lat: 55.75, lon: 37.62 },
+      { ru: 'Москва', countryRu: 'Россия' },
+    ),
+    listed(
+      { name: 'Yoshkar-Ola', country: 'Russia', countryId: '643', lat: 56.63, lon: 47.89 },
+      { ru: 'Йошкар-Ола', countryRu: 'Россия' },
+    ),
+    listed(
+      { name: 'Berlin', country: 'Germany', countryId: '276', lat: 52.52, lon: 13.4 },
+      { ru: 'Берлин', countryRu: 'Германия' },
+    ),
+    listed({ name: 'Ávila', country: 'Spain', countryId: '724', lat: 40.66, lon: -4.7 }),
+  ];
+  const empty = linkArchive({ countries: [], trips: [] });
+  const names = (query: string) => searchPlaces(empty, query, list, 50).map((place) => place.name);
+
+  it('understands the Russian name, in any case, and "ё" for "е", "й" for "и"', () => {
+    expect(names('санкт')).toEqual(['Saint Petersburg']);
+    expect(names('МОСКВ')).toEqual(['Moscow']);
+    expect(names('йошкар')).toEqual(['Yoshkar-Ola']);
+    expect(names('ёшкар')).toEqual([]);
+    expect(names('берл')).toEqual(['Berlin']);
+  });
+
+  it('understands the Russian name of a country', () => {
+    expect(names('россия')).toEqual(['Saint Petersburg', 'Moscow', 'Yoshkar-Ola']);
+  });
+
+  it('shows the Russian name beside the place, and only for the ones that have it', () => {
+    expect(searchPlaces(empty, 'москва', list)[0]?.ru).toBe('Москва');
+    expect(searchPlaces(empty, 'avila', list)[0]?.ru).toBeUndefined();
+  });
+
+  it('finds a city of the map by its Russian name too, and lists it once', () => {
+    const map = linkArchive({
+      countries: [
+        {
+          id: '643',
+          name: 'Russia',
+          cities: [{ key: 'moscow', name: 'Moscow', lat: 55.75, lon: 37.62, albums: [] }],
+        },
+      ],
+      trips: [],
+    });
+    const found = searchPlaces(map, 'москв', list);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ name: 'Moscow', cityKey: 'moscow', ru: 'Москва' });
+  });
+
+  it('browses every city in alphabetical order, the ones on the map first', () => {
+    const map = linkArchive({
+      countries: [
+        {
+          id: '276',
+          name: 'Germany',
+          cities: [
+            {
+              key: 'berlin',
+              name: 'Berlin',
+              lat: 52.52,
+              lon: 13.4,
+              albums: [],
+            },
+          ],
+        },
+      ],
+      trips: [],
+    });
+    const all = browsePlaces(map, list).map((place) => place.name);
+    expect(all).toEqual(['Berlin', 'Ávila', 'Moscow', 'Saint Petersburg', 'Yoshkar-Ola']);
+    expect(browsePlaces(empty, list)).toHaveLength(5);
   });
 });

@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import type { Archive } from '@/data/archive';
 import { loadCities } from '@/data/cities';
-import { searchPlaces } from '@/data/places';
+import { browsePlaces, searchPlaces } from '@/data/places';
 import type { Listed, PickedPlace } from '@/data/places';
 import { placeLabel } from './fields';
+
+/** Height of one row, and how many rows past the edge are drawn so a fast scroll shows no gap. */
+const ROW = 46;
+const SPARE = 4;
+/** A search shows this many of the best matches; the list to scroll is the whole world. */
+const FOUND = 400;
 
 /** The cities of the world, once they have come in; before that the field uses a short list. */
 const useCities = (): Listed[] | undefined => {
@@ -21,31 +28,102 @@ const useCities = (): Listed[] | undefined => {
   return cities;
 };
 
-/** A city field: the places already on the map first, then every city of the world. */
+/** What the home row stands for: the field can offer the home base as its first choice. */
+export interface HomeChoice {
+  label: string;
+  onPick: () => void;
+}
+
+/**
+ * A city field. Open, it lists every city of the world in alphabetical order (the ones on the
+ * map first) to scroll through; typing narrows it to the matches, in English or in Russian.
+ */
 export function PlaceField({
   id,
   label,
   archive,
   value,
   onPick,
+  text: shown,
+  home,
 }: {
   id: string;
   label: string;
   archive: Archive;
   value: PickedPlace | null;
   onPick: (place: PickedPlace | null) => void;
+  /** What the box says when nothing was typed and nothing is picked (a home choice, say). */
+  text?: string;
+  home?: HomeChoice;
 }) {
-  const [text, setText] = useState(value ? placeLabel(value) : '');
+  const [typed, setTyped] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [top, setTop] = useState(0);
   const cities = useCities();
-  // a place that is already picked shows the whole list again, not a search for its own label
-  const found = searchPlaces(archive, value && placeLabel(value) === text ? '' : text, cities);
+  const list = useRef<HTMLDivElement>(null);
+  const box = typeof typed === 'string' ? typed : value ? placeLabel(value) : (shown ?? '');
+  // a place that is already picked, or a box nobody typed in, shows the whole list, not a search
+  const query = typed ?? '';
+  const places = useMemo(
+    () =>
+      query.trim() ? searchPlaces(archive, query, cities, FOUND) : browsePlaces(archive, cities),
+    [archive, cities, query],
+  );
+  const rows = home && !query.trim() ? 1 + places.length : places.length;
+  const placeAt = (index: number): PickedPlace | null =>
+    home && !query.trim() ? (places[index - 1] ?? null) : (places[index] ?? null);
 
-  const choose = (place: PickedPlace) => {
-    setText(placeLabel(place));
+  useEffect(() => {
+    if (open) list.current?.scrollIntoView({ block: 'nearest' });
+  }, [open]);
+
+  const choose = (index: number) => {
+    if (home && !query.trim() && index === 0) {
+      setTyped(null);
+      setOpen(false);
+      home.onPick();
+      return;
+    }
+    const place = placeAt(index);
+    if (!place) return;
+    setTyped(null);
     setOpen(false);
     onPick(place);
   };
+
+  const move = (to: number) => {
+    const next = Math.max(0, Math.min(rows - 1, to));
+    setActive(next);
+    const box = list.current?.querySelector<HTMLElement>('.sheet__list');
+    if (!box) return;
+    if (next * ROW < box.scrollTop) box.scrollTop = next * ROW;
+    else if ((next + 1) * ROW > box.scrollTop + box.clientHeight) {
+      box.scrollTop = (next + 1) * ROW - box.clientHeight;
+    }
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setOpen(true);
+      move(active + 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      move(active - 1);
+    } else if (event.key === 'Enter' && open && rows > 0) {
+      event.preventDefault();
+      choose(active);
+    } else if (event.key === 'Escape' && open) {
+      // closes the list; the sheet stays
+      event.stopPropagation();
+      setOpen(false);
+    }
+  };
+
+  const first = Math.max(0, Math.floor(top / ROW) - SPARE);
+  const last = Math.min(rows, Math.ceil((top + 300) / ROW) + SPARE);
+  const visible = Array.from({ length: Math.max(0, last - first) }, (_, k) => first + k);
 
   return (
     <label className="sheet__field" htmlFor={id}>
@@ -53,42 +131,80 @@ export function PlaceField({
       <input
         id={id}
         autoComplete="off"
-        placeholder="Start typing a city"
-        value={text}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${id}-list`}
+        placeholder="Pick from the list or start typing a city"
+        value={box}
         onChange={(event) => {
-          setText(event.target.value);
+          setTyped(event.target.value);
           setOpen(true);
+          setActive(0);
+          setTop(0);
+          list.current?.querySelector('.sheet__list')?.scrollTo({ top: 0 });
           onPick(null);
         }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onKeyDown={(event) => {
-          const first = found[0];
-          if (event.key === 'Enter' && !value && first) {
-            event.preventDefault();
-            choose(first);
-          }
+        onFocus={(event) => {
+          setOpen(true);
+          event.target.select();
         }}
+        onClick={() => setOpen(true)}
+        onBlur={() => {
+          setTimeout(() => setOpen(false), 150);
+          setTyped(null);
+        }}
+        onKeyDown={onKeyDown}
       />
-      {open && found.length > 0 && (
-        <div className="sheet__sugg">
-          {found.map((place) => (
-            <button
-              key={`${place.name}|${place.country}`}
-              type="button"
-              // pointerdown, not click: the field's blur would take the list away first
-              onPointerDown={(event) => {
-                event.preventDefault();
-                choose(place);
-              }}
-            >
-              {place.name}
-              <small>
-                {place.country}
-                {place.cityKey ? ' · on your map' : ''}
-              </small>
-            </button>
-          ))}
+      <span className="sheet__chev" aria-hidden="true" />
+      {open && rows > 0 && (
+        <div className="sheet__drop-wrap" ref={list}>
+          <div
+            id={`${id}-list`}
+            className="sheet__list"
+            role="listbox"
+            onScroll={(event) => setTop(event.currentTarget.scrollTop)}
+          >
+            <div style={{ height: rows * ROW }}>
+              {visible.map((index) => {
+                const isHome = home && !query.trim() && index === 0;
+                const place = isHome ? null : placeAt(index);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    role="option"
+                    aria-selected={index === active}
+                    className={index === active ? 'is-active' : undefined}
+                    style={{ top: index * ROW, height: ROW }}
+                    // pointerdown, not click: the field's blur would take the list away first
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      choose(index);
+                    }}
+                    onPointerEnter={() => setActive(index)}
+                  >
+                    {isHome && home ? (
+                      <>
+                        {home.label}
+                        <small>your home base</small>
+                      </>
+                    ) : (
+                      place && (
+                        <>
+                          {place.name}
+                          <small>
+                            {place.ru ? `${place.ru} · ` : ''}
+                            {place.country}
+                            {place.cityKey ? ' · on your map' : ''}
+                          </small>
+                        </>
+                      )
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </label>

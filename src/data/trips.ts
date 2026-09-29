@@ -18,7 +18,13 @@ export const endpointPlace = (end: Endpoint, archive: Archive, home: Place): End
   if ('cityKey' in end) {
     const city = archive.cityByKey.get(end.cityKey);
     if (city) {
-      return { name: city.name, country: city.country.name, lon: city.lon, lat: city.lat, cityKey: city.key };
+      return {
+        name: city.name,
+        country: city.country.name,
+        lon: city.lon,
+        lat: city.lat,
+        cityKey: city.key,
+      };
     }
   }
   return { name: home.name, country: home.country, lon: home.lon, lat: home.lat, cityKey: null };

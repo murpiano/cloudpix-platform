@@ -4,6 +4,8 @@ import type { Place } from './types';
 /** A place the picker offers: from the map (then it carries its city key) or from the list. */
 export interface PickedPlace extends Place {
   cityKey?: string;
+  /** The Russian name of the city, when the list has one. */
+  ru?: string;
 }
 
 // [name, country, ISO 3166 numeric, lat, lon] — about 70 cities, enough to pick a home base.
@@ -96,39 +98,46 @@ export const GAZETTEER: Place[] = RAW.map(([name, country, countryId, lat, lon])
 
 const LIMIT = 8;
 
-/** A place with its search text made once: lower case, no accents, name and country together. */
+/** A place with its search text made once: lower case, no accents, in both English and Russian. */
 export interface Listed extends Place {
+  /** The Russian name, when there is one; it is searched, and shown beside the country. */
+  ru: string;
+  /** The name alone, plain, to put the list in order. */
+  key: string;
+  /** City names (English, plain letters, Russian), a bar, then the country in both languages. */
   find: string;
-  /** The end of `find` where the country starts, so a hit on the city outranks one on the country. */
+  /** Where the country starts in `find`, so a hit on the city outranks one on the country. */
   at: number;
 }
 
-/** Lower case with the accents taken off: "Reykjavík" and "reykjavik" are one word. */
+/** Lower case with the accents taken off: "Reykjavík" and "reykjavik" are one word, "ё" is "е". */
 export const plain = (text: string): string =>
   text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
+export const listed = (
+  place: Place,
+  extra: { ascii?: string; ru?: string; countryRu?: string } = {},
+): Listed => {
+  const key = plain(place.name);
+  const city = [key, extra.ascii ? plain(extra.ascii) : '', extra.ru ? plain(extra.ru) : '']
+    .filter(Boolean)
+    .join(' ');
+  const country = [plain(place.country), extra.countryRu ? plain(extra.countryRu) : '']
+    .filter(Boolean)
+    .join(' ');
+  return { ...place, ru: extra.ru ?? '', key, find: `${city}|${country}`, at: city.length };
+};
+
 export const listPlaces = (places: readonly Place[], ascii: readonly string[] = []): Listed[] =>
-  places.map((place, index) => {
-    const city = `${plain(place.name)} ${ascii[index] ? plain(ascii[index]) : ''}`.trim();
-    return { ...place, find: `${city}|${plain(place.country)}`, at: city.length };
-  });
+  places.map((place, index) => listed(place, { ascii: ascii[index] ?? '' }));
 
 const BUILT_IN = listPlaces(GAZETTEER);
 
-/**
- * The places to pick from: the ones already on the map first, then the list of cities (the full
- * one once it has loaded, a short built-in one before that). A city whose name starts with what
- * was typed comes before one that only contains it, and either before a match on the country.
- */
-export const searchPlaces = (
-  archive: Archive,
-  query: string,
-  cities: readonly Listed[] = BUILT_IN,
-): PickedPlace[] => {
-  const mine: PickedPlace[] = archive.countries.flatMap((country) =>
+const mineOf = (archive: Archive): PickedPlace[] =>
+  archive.countries.flatMap((country) =>
     country.cities.map((city) => ({
       name: city.name,
       country: country.name,
@@ -138,41 +147,104 @@ export const searchPlaces = (
       cityKey: city.key,
     })),
   );
+
+const pickedOf = (place: Listed): PickedPlace => ({
+  name: place.name,
+  country: place.country,
+  countryId: place.countryId,
+  lat: place.lat,
+  lon: place.lon,
+  ...(place.ru ? { ru: place.ru } : {}),
+});
+
+/** A city of the list by its plain name, made once for each list: the map's cities borrow its Russian name. */
+const named = new WeakMap<readonly Listed[], Map<string, Listed>>();
+const byName = (cities: readonly Listed[]): Map<string, Listed> => {
+  let map = named.get(cities);
+  if (!map) {
+    map = new Map();
+    for (const city of cities) if (!map.has(city.key)) map.set(city.key, city);
+    named.set(cities, map);
+  }
+  return map;
+};
+
+/** The places of the map, with the Russian name the list has for them. */
+const mineWithRu = (archive: Archive, cities: readonly Listed[]): PickedPlace[] => {
+  const known = byName(cities);
+  return mineOf(archive).map((place) => {
+    const ru = known.get(plain(place.name))?.ru;
+    return ru ? { ...place, ru } : place;
+  });
+};
+
+/** The list in alphabetical order, made once for each list. */
+const sorted = new WeakMap<readonly Listed[], Listed[]>();
+export const alphabetical = (cities: readonly Listed[]): Listed[] => {
+  let list = sorted.get(cities);
+  if (!list) {
+    list = [...cities].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    sorted.set(cities, list);
+  }
+  return list;
+};
+
+/** With nothing typed: the places on the map first, then every city in alphabetical order. */
+export const browsePlaces = (
+  archive: Archive,
+  cities: readonly Listed[] = BUILT_IN,
+): PickedPlace[] => {
+  const mine = mineWithRu(archive, cities).sort((a, b) =>
+    plain(a.name).localeCompare(plain(b.name)),
+  );
+  const own = new Set(mine.map((place) => plain(place.name)));
+  return [
+    ...mine,
+    ...alphabetical(cities)
+      .filter((place) => !own.has(place.key))
+      .map(pickedOf),
+  ];
+};
+
+/**
+ * The places that match what was typed, best first: the ones already on the map, then the list of
+ * cities (the full one once it has loaded, a short built-in one before that). A city whose name
+ * starts with the text comes before one that only contains it, and either before a match on the
+ * country. English and Russian are both understood, with or without accents.
+ */
+export const searchPlaces = (
+  archive: Archive,
+  query: string,
+  cities: readonly Listed[] = BUILT_IN,
+  limit = LIMIT,
+): PickedPlace[] => {
+  const mine = mineWithRu(archive, cities);
   const needle = plain(query.trim());
-  const matches = (place: { name: string; country: string }): number => {
-    if (!needle) return 0;
-    const name = plain(place.name);
-    if (name.startsWith(needle)) return 0;
-    if (name.includes(needle)) return 1;
-    return plain(place.country).includes(needle) ? 2 : -1;
+  if (!needle) return [...mine, ...cities.map(pickedOf)].slice(0, limit);
+  const rankOf = (city: string, country: string): number => {
+    if (city.startsWith(needle) || city.includes(` ${needle}`)) return 0;
+    if (city.includes(needle)) return 1;
+    return country.includes(needle) ? 2 : -1;
   };
   const own = new Set(mine.map((place) => plain(place.name)));
-  const hits: { place: PickedPlace; rank: number }[] = mine.flatMap((place) => {
-    const rank = matches(place);
-    return rank < 0 ? [] : [{ place, rank: rank - 3 }];
-  });
+  const hits: { place: PickedPlace; rank: number }[] = [];
+  for (const place of mine) {
+    const ru = place.ru ? ` ${plain(place.ru)}` : '';
+    const rank = rankOf(`${plain(place.name)}${ru}`, plain(place.country));
+    if (rank >= 0) hits.push({ place, rank: rank - 3 });
+  }
   // the list is in order of size, so the first hits of each kind are the biggest cities
   const per: PickedPlace[][] = [[], [], []];
-  for (const listed of cities) {
-    if (per.every((bucket) => bucket.length >= LIMIT)) break;
-    if (needle && !listed.find.includes(needle)) continue;
-    const city = listed.find.slice(0, listed.at);
-    let rank = 2;
-    if (!needle || city.startsWith(needle) || city.includes(` ${needle}`)) rank = 0;
-    else if (city.includes(needle)) rank = 1;
+  for (const place of cities) {
+    if (per.every((bucket) => bucket.length >= limit)) break;
+    if (!place.find.includes(needle) || own.has(place.key)) continue;
+    const rank = rankOf(place.find.slice(0, place.at), place.find.slice(place.at + 1));
     const bucket = per[rank];
-    if (!bucket || bucket.length >= LIMIT || own.has(plain(listed.name))) continue;
-    bucket.push({
-      name: listed.name,
-      country: listed.country,
-      countryId: listed.countryId,
-      lat: listed.lat,
-      lon: listed.lon,
-    });
+    if (bucket && bucket.length < limit) bucket.push(pickedOf(place));
   }
   per.forEach((bucket, rank) => {
     for (const place of bucket) hits.push({ place, rank });
   });
   hits.sort((a, b) => a.rank - b.rank);
-  return hits.slice(0, LIMIT).map((hit) => hit.place);
+  return hits.slice(0, limit).map((hit) => hit.place);
 };

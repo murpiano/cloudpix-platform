@@ -56,6 +56,24 @@ export const cityFor = (data: ArchiveData, place: PickedPlace): CityData => {
   return city;
 };
 
+/**
+ * A city with no albums stays only while a trip starts or ends there (the plane flies to it, no
+ * light is drawn); a country with no cities goes with them.
+ */
+const pruneEmpty = (data: ArchiveData): void => {
+  const wanted = new Set<string>();
+  for (const trip of data.trips) {
+    if ('cityKey' in trip.start) wanted.add(trip.start.cityKey);
+    if ('cityKey' in trip.end) wanted.add(trip.end.cityKey);
+  }
+  for (const country of data.countries) {
+    country.cities = country.cities.filter(
+      (city) => city.albums.length > 0 || wanted.has(city.key),
+    );
+  }
+  data.countries = data.countries.filter((country) => country.cities.length > 0);
+};
+
 const findAlbum = (data: ArchiveData, albumId: Id): { city: CityData; album: AlbumData } | null => {
   for (const city of allCities(data)) {
     const album = city.albums.find((one) => one.id === albumId);
@@ -119,6 +137,7 @@ export const updateAlbum = (data: ArchiveData, albumId: Id, fields: AlbumFields)
     next.albums.push(album);
   }
   attach(data, albumId, fields.tripId);
+  pruneEmpty(data);
 };
 
 /** Deletes the album and hands back the photos, so the caller can drop their blobs. */
@@ -127,6 +146,7 @@ export const deleteAlbum = (data: ArchiveData, albumId: Id): PhotoRef[] => {
   if (!found) return [];
   found.city.albums.splice(found.city.albums.indexOf(found.album), 1);
   detach(data, albumId);
+  pruneEmpty(data);
   return found.album.photos;
 };
 
@@ -179,10 +199,12 @@ export const updateTrip = (data: ArchiveData, tripId: Id, fields: TripFields): v
   trip.end = fields.end;
   trip.albumIds = [];
   for (const albumId of fields.albumIds) attach(data, albumId, tripId);
+  pruneEmpty(data);
 };
 
 /** The trip goes; its albums stay where they are. */
 export const deleteTrip = (data: ArchiveData, tripId: Id): void => {
   const index = data.trips.findIndex((trip) => trip.id === tripId);
   if (index >= 0) data.trips.splice(index, 1);
+  pruneEmpty(data);
 };

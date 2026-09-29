@@ -5,6 +5,7 @@ import { repository } from '@/state/owner';
 import { saveAccount, userStore } from '@/state/user';
 import { BackupBox } from './BackupBox';
 import { ConfirmButton } from './ConfirmButton';
+import { accountProblem } from './fields';
 import { PlaceField } from './PlaceField';
 import { Acts, Sheet } from './Sheet';
 
@@ -18,9 +19,16 @@ export function AccountForm({ archive, onClose }: { archive: Archive; onClose: (
   const [home, setHome] = useState<PickedPlace | null>(user?.home ?? null);
   if (!user) return null;
 
-  const mismatch = pass !== again;
+  const problem = accountProblem({
+    name,
+    email,
+    password: pass,
+    again,
+    home,
+    passwordOptional: true,
+  });
   const submit = () => {
-    if (!name.trim() || !home || mismatch) return;
+    if (problem || !home) return;
     const { name: city, country, countryId, lat, lon } = home;
     saveAccount({
       name: name.trim(),
@@ -97,15 +105,13 @@ export function AccountForm({ archive, onClose }: { archive: Archive; onClose: (
         <button
           type="button"
           className="sheet__btn is-main"
-          disabled={!name.trim() || !home || mismatch}
+          disabled={problem !== null}
           onClick={submit}
         >
           Save
         </button>
       </Acts>
-      <p className="sheet__note">
-        {mismatch ? 'The two passwords do not match.' : 'The password is not stored anywhere yet.'}
-      </p>
+      <p className="sheet__note">{problem ?? 'The password is not stored anywhere yet.'}</p>
     </Sheet>
   );
 }

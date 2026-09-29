@@ -1,29 +1,23 @@
-import { plain } from './places';
+import { listed } from './places';
 import type { Listed } from './places';
 
 /** `public/data/cities.json`: the cities of the world, biggest first, from GeoNames. */
 export interface CityFile {
-  /** ISO 3166 numeric code (as the world map has it), English name. */
-  countries: [id: string, name: string][];
-  /** Name, its plain-letter form when that differs, index into `countries`, latitude, longitude. */
-  cities: [name: string, ascii: string, country: number, lat: number, lon: number][];
+  /** ISO 3166 numeric code (as the world map has it), English name, Russian name or nothing. */
+  countries: [id: string, name: string, ru: string][];
+  /** Name, plain-letter name or nothing, Russian name or nothing, country index, latitude, longitude. */
+  cities: [name: string, ascii: string, ru: string, country: number, lat: number, lon: number][];
 }
 
 export const parseCities = (file: CityFile): Listed[] =>
-  file.cities.flatMap(([name, ascii, index, lat, lon]) => {
+  file.cities.flatMap(([name, ascii, ru, index, lat, lon]) => {
     const country = file.countries[index];
     if (!country) return [];
-    const city = ascii ? `${plain(name)} ${plain(ascii)}` : plain(name);
     return [
-      {
-        name,
-        country: country[1],
-        countryId: country[0],
-        lat,
-        lon,
-        find: `${city}|${plain(country[1])}`,
-        at: city.length,
-      },
+      listed(
+        { name, country: country[1], countryId: country[0], lat, lon },
+        { ascii, ru, countryRu: country[2] },
+      ),
     ];
   });
 
