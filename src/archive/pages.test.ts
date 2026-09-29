@@ -71,6 +71,8 @@ describe('labels', () => {
     expect(plural(1, 'album')).toBe('1 album');
     expect(plural(3, 'city')).toBe('3 cities');
     expect(plural(2, 'place')).toBe('2 places');
+    expect(plural(8, 'country')).toBe('8 countries');
+    expect(plural(2, 'day')).toBe('2 days');
   });
 });
 

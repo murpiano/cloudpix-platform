@@ -77,9 +77,13 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
   useEffect(() => {
     if (!photo.closing) return;
     const image = stage.current?.querySelector<HTMLImageElement>('.lightbox__img.is-current');
-    const tile = [...document.querySelectorAll<HTMLElement>(`[data-photo-key="${CSS.escape(key)}"]`)].find(
-      (element) => !element.closest('.lightbox'),
-    );
+    // the tile showing this photo now: in the archive when it is open (the panel lies under it)
+    const tiles = [
+      ...document.querySelectorAll<HTMLElement>(`[data-photo-key="${CSS.escape(key)}"]`),
+    ].filter((element) => !element.closest('.lightbox'));
+    const tile = appStore.get().archive
+      ? tiles.find((element) => element.closest('.archive'))
+      : tiles[0];
     if (!image) {
       finishPhoto(appStore);
       return;

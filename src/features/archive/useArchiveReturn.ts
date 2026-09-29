@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { RETURN_DELAY_MS, SLOW_FADE_MS, tourOutcome } from '@/archive/return';
+import { RETURN_DELAY_MS, returnStep, SLOW_FADE_MS } from '@/archive/return';
 import { appStore } from '@/state/app-state';
 import { openArchive } from '@/state/archive-nav';
 import { forgetReturn, takeReturn } from './links';
@@ -13,19 +13,23 @@ export const useArchiveReturn = (): void => {
     let prev = appStore.get();
     let timer = 0;
     let fade = 0;
+    let armed = false;
     const unsubscribe = appStore.subscribe(() => {
       const next = appStore.get();
-      const outcome = tourOutcome(prev, next);
+      const step = returnStep(armed, prev, next);
       prev = next;
-      if (outcome === 'interrupted') {
+      if (step === 'cancel') {
         forgetReturn();
         clearTimeout(timer);
+        armed = false;
       }
-      if (outcome !== 'finished') return;
+      if (step !== 'arm') return;
       const pages = takeReturn();
       if (!pages || pages.length === 0) return;
       clearTimeout(timer);
+      armed = true;
       timer = window.setTimeout(() => {
+        armed = false;
         const state = appStore.get();
         if (state.photo || state.archive) return;
         const [first, ...rest] = pages;
