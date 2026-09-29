@@ -33,6 +33,26 @@ export interface PhotoView {
   closing: boolean;
 }
 
+/** A page of the archive. */
+export type ArchivePage =
+  | { kind: 'trips' }
+  | { kind: 'trip'; id: string }
+  | { kind: 'albums' }
+  | { kind: 'album'; id: string }
+  | { kind: 'countries' }
+  | { kind: 'country'; id: string }
+  | { kind: 'cities' }
+  | { kind: 'city'; key: string }
+  | { kind: 'years' }
+  | { kind: 'year'; year: number };
+
+/** The archive over the globe: the pages walked, the last one shown. */
+export interface ArchiveView {
+  stack: ArchivePage[];
+  /** Fading back in slowly after a tour. */
+  slow: boolean;
+}
+
 export interface AppState {
   /**
    * The city the hover label shows. It keeps the last city after the cursor leaves, so the label
@@ -63,6 +83,10 @@ export interface AppState {
   photo: PhotoView | null;
   /** The burger menu or the settings, open under the header. */
   menu: 'nav' | 'settings' | null;
+  /** The archive, open over the globe. */
+  archive: ArchiveView | null;
+  /** Counts the year and trip tours that ended by themselves. */
+  tourDone: number;
 }
 
 export const INITIAL_STATE: AppState = {
@@ -81,6 +105,8 @@ export const INITIAL_STATE: AppState = {
   lastTour: null,
   photo: null,
   menu: null,
+  archive: null,
+  tourDone: 0,
 };
 
 export const appStore = createStore<AppState>({ ...INITIAL_STATE });

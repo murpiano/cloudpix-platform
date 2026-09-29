@@ -3,8 +3,9 @@ import type { Store } from './store';
 
 type AppStore = Store<AppState>;
 
-/** The world clock stops while the photo window is open (and the archive, in plan 4). */
-const pausedFor = (state: AppState): boolean => state.photo !== null;
+/** The world clock stops while the photo window or the archive is open. */
+export const pausedFor = (state: AppState): boolean =>
+  state.photo !== null || state.archive !== null;
 
 export const openPhoto = (store: AppStore, albumId: string, index: number, from: Rect | null) => {
   store.set({
@@ -44,8 +45,8 @@ export const toggleMenu = (store: AppStore, menu: 'nav' | 'settings') => {
   store.set({ menu: store.get().menu === menu ? null : menu });
 };
 
-/** What Esc closes, innermost first: form (plan 5), menu, photo, archive (plan 4), the journey. */
-export type EscapeTarget = 'menu' | 'photo' | 'journey';
+/** What Esc closes, innermost first: form (plan 5), menu, photo, archive (one step), the journey. */
+export type EscapeTarget = 'menu' | 'photo' | 'archive' | 'journey';
 
 export const escapeTarget = (state: AppState): EscapeTarget =>
-  state.menu ? 'menu' : state.photo ? 'photo' : 'journey';
+  state.menu ? 'menu' : state.photo ? 'photo' : state.archive ? 'archive' : 'journey';

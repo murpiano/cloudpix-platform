@@ -71,6 +71,17 @@ describe('the photo window', () => {
   });
 });
 
+describe('the photo window over the archive', () => {
+  it('keeps the world paused when it closes over the archive', () => {
+    const store = setup();
+    store.set({ archive: { stack: [{ kind: 'trips' }], slow: false } });
+    openPhoto(store, 'a', 0, null);
+    closePhoto(store);
+    finishPhoto(store);
+    expect(store.get().paused).toBe(true);
+  });
+});
+
 describe('menus', () => {
   it('opens one menu at a time', () => {
     const store = setup();
@@ -86,6 +97,8 @@ describe('escapeTarget', () => {
   it('closes the innermost layer first', () => {
     const store = setup();
     expect(escapeTarget(store.get())).toBe('journey');
+    store.set({ archive: { stack: [{ kind: 'trips' }], slow: false } });
+    expect(escapeTarget(store.get())).toBe('archive');
     openPhoto(store, 'a', 0, null);
     expect(escapeTarget(store.get())).toBe('photo');
     store.set({ menu: 'settings' });
