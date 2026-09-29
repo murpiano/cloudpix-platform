@@ -29,9 +29,9 @@ const album = (title: string) => {
 describe('journeys', () => {
   it('lists the trips newest first', () => {
     const list = journeys(archive);
-    expect(list).toHaveLength(23);
-    expect(list[0]?.name).toBe('Japan in autumn');
-    expect(list[list.length - 1]?.name).toBe('First time abroad');
+    expect(list).toHaveLength(2);
+    expect(list[0]?.name).toBe('South America and the ice');
+    expect(list[list.length - 1]?.name).toBe('Mediterranean autumn');
     expect(list.every((j) => j.real)).toBe(true);
   });
 
@@ -45,29 +45,33 @@ describe('journeys', () => {
     };
     const list = journeys(linkArchive(data));
     expect(list[0]?.name).toBe('Someday');
-    const own = list.find((j) => !j.real);
-    expect(own?.name).toBe('Paris 2016');
-    expect(own?.albums.map((a) => a.title)).toEqual(['First trip abroad']);
+    const own = list.find((j) => !j.real && j.name === 'Athens 2016');
+    expect(own?.albums.map((a) => a.title)).toEqual(['Acropolis at sunrise']);
+    expect(list.filter((j) => !j.real)).toHaveLength(3);
   });
 
   it('finds the trip of an album', () => {
-    expect(journeyOfAlbum(archive, album('Sakura week').id)?.name).toBe('Japan in bloom');
+    expect(journeyOfAlbum(archive, album('Acropolis at sunrise').id)?.name).toBe(
+      'Mediterranean autumn',
+    );
   });
 });
 
 describe('labels', () => {
   it('spans a month, months of a year, or years', () => {
-    expect(dateSpan([album('Paris again')])).toBe('Apr 2022');
-    expect(dateSpan([album('Gaudí & the sea'), album('Tram 28')])).toBe('Mar – Apr 2019');
-    expect(dateSpan([album('Seven days in Manhattan'), album('Midnight sun')])).toBe(
-      'Oct 2017 – Jun 2020',
+    expect(dateSpan([album('Acropolis at sunrise')])).toBe('Sep 2016');
+    expect(dateSpan([album('Acropolis at sunrise'), album('Tram 28 and tiles')])).toBe(
+      'Sep – Nov 2016',
+    );
+    expect(dateSpan([album('Acropolis at sunrise'), album('Amber coast')])).toBe(
+      'Sep 2016 – Apr 2020',
     );
     expect(dateSpan([])).toBe('no albums yet');
   });
 
   it('names a moment and counts', () => {
-    const a = album('Tram 28');
-    expect(whenLabel(a)).toBe(`${a.day} Apr 2019, ${a.time}`);
+    const a = album('Tram 28 and tiles');
+    expect(whenLabel(a)).toBe(`${a.day} Nov 2016, ${a.time}`);
     expect(plural(1, 'album')).toBe('1 album');
     expect(plural(3, 'city')).toBe('3 cities');
     expect(plural(2, 'place')).toBe('2 places');
@@ -78,42 +82,44 @@ describe('labels', () => {
 
 describe('tripRoute', () => {
   it('goes from the start through each place once to the end', () => {
-    const japan = journeys(archive).find((j) => j.name === 'Japan in bloom');
-    if (!japan) throw new Error('no trip');
-    const route = tripRoute(japan, archive, DEMO_HOME);
-    expect(route[0]).toEqual({ n: 0, label: 'Start', place: 'home · Kyiv, Ukraine', albums: [] });
-    expect(route.slice(1, -1).map((s) => s.label).sort()).toEqual(['Kyoto', 'Tokyo']);
-    expect(route.slice(1, -1).flatMap((s) => s.albums)).toHaveLength(3);
-    expect(route[route.length - 1]).toEqual({
-      n: 3,
-      label: 'End',
-      place: 'home · Kyiv, Ukraine',
-      albums: [],
-    });
+    const south = journeys(archive).find((j) => j.name === 'South America and the ice');
+    if (!south) throw new Error('no trip');
+    const route = tripRoute(south, archive, DEMO_HOME);
+    const home = 'home · Saint Petersburg, Russia';
+    expect(route[0]).toEqual({ n: 0, label: 'Start', place: home, albums: [] });
+    expect(route.slice(1, -1).map((s) => s.label)).toEqual([
+      'Rio de Janeiro',
+      'Montevideo',
+      'Bellingshausen Station',
+      'Buenos Aires',
+      'Kaliningrad',
+    ]);
+    expect(route.slice(1, -1).flatMap((s) => s.albums)).toHaveLength(7);
+    expect(route[route.length - 1]).toEqual({ n: 6, label: 'End', place: home, albums: [] });
   });
 });
 
 describe('groups and photos', () => {
   it('groups albums by year, latest first, each year by date', () => {
-    const groups = albumsByYear(archive.cityByKey.get('paris')?.albums ?? []);
-    expect(groups.map((g) => g.year)).toEqual([2025, 2022, 2016]);
-    expect(groups[1]?.albums).toHaveLength(2);
+    const groups = albumsByYear(archive.albums);
+    expect(groups.map((g) => g.year)).toEqual([2020, 2019, 2016]);
+    expect(groups.map((g) => g.albums.length)).toEqual([5, 2, 3]);
   });
 
   it('puts up to three photos in a folder, none for an empty album', () => {
-    expect(folderPhotos(album('Tram 28')).length).toBeLessThanOrEqual(3);
-    expect(folderPhotos({ ...album('Tram 28'), photos: [] })).toEqual([]);
-    expect(coverOf([{ ...album('Tram 28'), photos: [] }, album('Paris again')])).toEqual(
-      album('Paris again').photos[0],
-    );
+    expect(folderPhotos(album('Tram 28 and tiles')).length).toBeLessThanOrEqual(3);
+    expect(folderPhotos({ ...album('Tram 28 and tiles'), photos: [] })).toEqual([]);
+    expect(
+      coverOf([{ ...album('Tram 28 and tiles'), photos: [] }, album('Acropolis at sunrise')]),
+    ).toEqual(album('Acropolis at sunrise').photos[0]);
   });
 });
 
 describe('findPage', () => {
   it('builds each page, or nothing when its target is gone', () => {
     expect(findPage(archive, { kind: 'trips' }, DEMO_HOME)?.kind).toBe('trips');
-    expect(findPage(archive, { kind: 'city', key: 'paris' }, DEMO_HOME)?.kind).toBe('city');
-    expect(findPage(archive, { kind: 'year', year: 2023 }, DEMO_HOME)?.kind).toBe('year');
+    expect(findPage(archive, { kind: 'city', key: 'athens' }, DEMO_HOME)?.kind).toBe('city');
+    expect(findPage(archive, { kind: 'year', year: 2020 }, DEMO_HOME)?.kind).toBe('year');
     expect(findPage(archive, { kind: 'city', key: 'atlantis' }, DEMO_HOME)).toBeNull();
     expect(findPage(archive, { kind: 'trip', id: 'gone' }, DEMO_HOME)).toBeNull();
     expect(findPage(archive, { kind: 'album', id: 'gone' }, DEMO_HOME)).toBeNull();
@@ -121,11 +127,7 @@ describe('findPage', () => {
   });
 
   it('counts what a country holds', () => {
-    const page = findPage(archive, { kind: 'country', id: '724' }, DEMO_HOME);
-    expect(page?.kind === 'country' && page.cities.map((c) => c.name)).toEqual([
-      'Barcelona',
-      'Madrid',
-      'Seville',
-    ]);
+    const page = findPage(archive, { kind: 'country', id: '858' }, DEMO_HOME);
+    expect(page?.kind === 'country' && page.cities.map((c) => c.name)).toEqual(['Montevideo']);
   });
 });

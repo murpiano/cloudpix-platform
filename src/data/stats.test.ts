@@ -16,14 +16,14 @@ describe('journeyStats', () => {
   it('counts everything with nothing picked', () => {
     const stats = journeyStats(archive, times, null, -1);
     expect(stats.scope).toBe('all');
-    expect(stats.countries).toBe(12);
-    expect(stats.totalCountries).toBe(12);
+    expect(stats.countries).toBe(8);
+    expect(stats.totalCountries).toBe(8);
     expect(stats.photos).toBe(allPhotos);
-    expect(stats.km).toBeGreaterThan(50000);
+    expect(stats.km).toBeGreaterThan(25000);
   });
 
   it('counts what is in the range', () => {
-    const stats = journeyStats(archive, times, yearRange(2023), 5);
+    const stats = journeyStats(archive, times, yearRange(2019), 5);
     expect(stats.scope).toBe('range');
     expect(stats.countries).toBe(2);
   });

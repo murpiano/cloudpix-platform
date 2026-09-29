@@ -22,8 +22,24 @@ import './panel.scss';
 
 /** Each photo dissolves into the next over this time. */
 const DISSOLVE_MS = 1400;
+/** The cards fade out this long before they move. */
+const AWAY_MS = 450;
 /** A vertical swipe this long turns the albums on a phone. */
 const SWIPE_PX = 30;
+
+/**
+ * Where the cards stand on a phone. When it changes they fade out, move while they cannot be seen,
+ * and fade back in: never a jump.
+ */
+function useCardsPlace(low: boolean): { low: boolean; away: boolean } {
+  const [placed, setPlaced] = useState(low);
+  useEffect(() => {
+    if (placed === low) return;
+    const timer = setTimeout(() => setPlaced(low), AWAY_MS);
+    return () => clearTimeout(timer);
+  }, [low, placed]);
+  return { low: placed, away: placed !== low };
+}
 
 /** The left column: the place in focus, its albums and its caption; hidden with nothing in focus. */
 export function AlbumPanel({ world }: { world: World }) {
@@ -32,12 +48,13 @@ export function AlbumPanel({ world }: { world: World }) {
   const endCard = useStore(appStore, (s) => s.endCard);
   const tour = useStore(appStore, (s) => s.tour);
   const low = useStore(appStore, (s) => s.albumsLow);
+  const placed = useCardsPlace(low);
   const album = archive.albums[focus];
   const scope = tour ?? endCard?.tour ?? null;
   const list = album ? scopedAlbums(cityAlbums(archive, album.city.key), tour) : [];
 
   return (
-    <section className={`panel${album ? '' : ' is-hidden'}${low ? ' is-low' : ''}`} aria-label="The place in focus">
+    <section className={`panel${album ? '' : ' is-hidden'}${placed.low ? ' is-low' : ''}${placed.away ? ' is-away' : ''}`} aria-label="The place in focus">
       {album && <LetGo />}
       <div className="panel__media">
         {album && <PanelHead archive={archive} list={list} focus={focus} scope={scope} />}

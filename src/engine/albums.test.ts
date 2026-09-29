@@ -12,7 +12,8 @@ describe('albumsLow', () => {
     expect(albumsLow(true, 400)).toBe(false);
   });
 
-  it('goes back up with no plane on the screen', () => {
-    expect(albumsLow(true, null)).toBe(false);
+  it('stays where it is with nothing to follow', () => {
+    expect(albumsLow(true, null)).toBe(true);
+    expect(albumsLow(false, null)).toBe(false);
   });
 });

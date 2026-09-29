@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Header } from '@/features/header/Header';
 import { loadWorld } from './boot';
 import type { World } from './boot';
+import { Splash } from './Splash';
 import { Stage } from './Stage';
 import './app.scss';
 
@@ -29,7 +30,7 @@ export function App() {
   return (
     <>
       {boot.status === 'ready' && <Stage world={boot.world} />}
-      {boot.status === 'loading' && <p className="boot">Loading the map…</p>}
+      {boot.status !== 'failed' && <Splash ready={boot.status === 'ready'} />}
       {boot.status === 'failed' && (
         <div className="boot" role="alert">
           <p>The map did not load.</p>

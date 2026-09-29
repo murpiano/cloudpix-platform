@@ -9,6 +9,12 @@
     opacity 0.7s ease,
     transform 0.7s ease;
 
+  // the cards are moving to the other end of a phone screen: gone first, then back
+  &.is-away {
+    opacity: 0;
+    transition-duration: 0.45s;
+  }
+
   &.is-hidden {
     opacity: 0;
     transform: translateX(-18px);

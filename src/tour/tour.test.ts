@@ -19,7 +19,7 @@ const tripNamed = (name: string) => {
 
 describe('tours', () => {
   it('goes through a year in date order', () => {
-    const tour = yearTour(2023, archive);
+    const tour = yearTour(2020, archive);
     expect(tour?.kind).toBe('year');
     expect(tour?.end).toBeNull();
     expect(tour?.list).toHaveLength(5);
@@ -28,28 +28,34 @@ describe('tours', () => {
   });
 
   it('goes through a trip in date order and knows where it ends', () => {
-    const tour = tripTour(tripNamed('Japan in bloom'), archive);
-    expect(titles(tour?.list ?? []).sort()).toEqual([
-      'Bamboo grove',
-      'Neon and quiet',
-      'Sakura week',
+    const tour = tripTour(tripNamed('South America and the ice'), archive);
+    expect(titles(tour?.list ?? [])).toEqual([
+      'Christ over the clouds',
+      'Rambla at dusk',
+      'The end of the world',
+      'Tango in La Boca',
+      'Montevideo again',
+      'Back to Rio',
+      'Amber coast',
     ]);
     expect(tour?.end).toEqual({ home: true });
-    expect(tour?.tripId).toBe(tripNamed('Japan in bloom').id);
+    expect(tour?.tripId).toBe(tripNamed('South America and the ice').id);
   });
 });
 
 describe('nextStep', () => {
   it('visits the next album of a trip, then flies to its end', () => {
-    const tour = tripTour(tripNamed('Japan in bloom'), archive);
+    const tour = tripTour(tripNamed('South America and the ice'), archive);
     if (!tour) throw new Error('no tour');
-    const [first, second, last] = tour.list;
+    const first = tour.list[0];
+    const second = tour.list[1];
+    const last = tour.list[tour.list.length - 1];
     expect(nextStep(tour, first ?? -1, times, null)).toEqual({ kind: 'album', index: second });
     expect(nextStep(tour, last ?? -1, times, null)).toEqual({ kind: 'end', end: { home: true } });
   });
 
   it('stops a year at its last album', () => {
-    const tour = yearTour(2023, archive);
+    const tour = yearTour(2020, archive);
     if (!tour) throw new Error('no tour');
     expect(nextStep(tour, tour.list[tour.list.length - 1] ?? -1, times, null)).toEqual({
       kind: 'stop',
@@ -75,12 +81,12 @@ describe('nextStep', () => {
 
 describe('scopedAlbums', () => {
   it('keeps to the tour, or shows every album of the place', () => {
-    const kyoto = cityAlbums(archive, 'kyoto');
-    expect(kyoto).toHaveLength(3);
-    const tour = tripTour(tripNamed('Japan in autumn'), archive);
-    expect(titles(scopedAlbums(kyoto, tour))).toEqual(['Autumn temples']);
-    expect(scopedAlbums(kyoto, null)).toEqual(kyoto);
-    const paris = tripTour(tripNamed('Paris in April'), archive);
-    expect(scopedAlbums(kyoto, paris)).toEqual(kyoto);
+    const montevideo = cityAlbums(archive, 'montevideo');
+    expect(montevideo).toHaveLength(2);
+    const december = yearTour(2019, archive);
+    expect(titles(scopedAlbums(montevideo, december))).toEqual(['Rambla at dusk']);
+    expect(scopedAlbums(montevideo, null)).toEqual(montevideo);
+    const autumn = tripTour(tripNamed('Mediterranean autumn'), archive);
+    expect(scopedAlbums(montevideo, autumn)).toEqual(montevideo);
   });
 });

@@ -11,7 +11,7 @@ const archive = linkArchive(buildDemo(JSON.parse(readFileSync(file, 'utf8')) as 
 
 describe('tripOfAlbum', () => {
   it('finds the trip an album belongs to', () => {
-    expect(tripOfAlbum(archive, 'kyoto/sakura-week')?.name).toBe('Japan in bloom');
+    expect(tripOfAlbum(archive, 'athens/acropolis-at-sunrise')?.name).toBe('Mediterranean autumn');
     expect(tripOfAlbum(archive, 'nowhere')).toBeUndefined();
   });
 });
@@ -19,16 +19,16 @@ describe('tripOfAlbum', () => {
 describe('endpointPlace', () => {
   it('is home for a home endpoint', () => {
     expect(endpointPlace({ home: true }, archive, DEMO_HOME)).toEqual({
-      name: 'Kyiv',
-      country: 'Ukraine',
-      lon: 30.52,
-      lat: 50.45,
+      name: 'Saint Petersburg',
+      country: 'Russia',
+      lon: 30.34,
+      lat: 59.93,
       cityKey: null,
     });
   });
 
   it('is the city for a city endpoint, and home when the city is gone', () => {
-    expect(endpointPlace({ cityKey: 'paris' }, archive, DEMO_HOME).name).toBe('Paris');
-    expect(endpointPlace({ cityKey: 'atlantis' }, archive, DEMO_HOME).name).toBe('Kyiv');
+    expect(endpointPlace({ cityKey: 'athens' }, archive, DEMO_HOME).name).toBe('Athens');
+    expect(endpointPlace({ cityKey: 'atlantis' }, archive, DEMO_HOME).name).toBe('Saint Petersburg');
   });
 });

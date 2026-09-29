@@ -10,8 +10,9 @@ React, TypeScript and SCSS on a 2D canvas — no WebGL, no map tiles, no server.
 
 ## Two modes
 
-**Demo (logged out).** A sample traveller: 12 countries, 22 cities, 32 albums, 23 trips, stock
-photos from Wikimedia Commons with their credits. Home is Kyiv. The globe, the timeline, the
+**Demo (logged out).** A sample traveller from Saint Petersburg: 8 countries, 8 cities, 10 albums of
+ten photos each, 2 trips (Athens, Valletta and Lisbon in 2016; Rio, Montevideo, Antarctica, Buenos
+Aires and Kaliningrad in 2019–20), stock photos from Wikimedia Commons with their credits. The globe, the timeline, the
 tours, the album panel and the photo window all work. Nothing is saved.
 
 **Owner (logged in).** Your own archive. On the first login it starts as a copy of the demo, so
@@ -122,7 +123,7 @@ src/
 └── styles/      tokens and SCSS helpers
 ```
 
-Every pure module has its tests next to it; there are 270 of them.
+Every pure module has its tests next to it; there are over 300 of them.
 
 ## Not there yet
 

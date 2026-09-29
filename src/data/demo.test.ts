@@ -11,27 +11,21 @@ const demo = buildDemo(credits);
 const cities = demo.countries.flatMap((country) => country.cities);
 const albums = cities.flatMap((city) => city.albums);
 
-const cityOf = (key: string) => {
-  const city = cities.find((c) => c.key === key);
-  if (!city) throw new Error(`no demo city ${key}`);
-  return city;
-};
-
 describe('demo archive', () => {
   it('has the size the design promises', () => {
-    expect(demo.countries).toHaveLength(12);
-    expect(cities).toHaveLength(22);
-    expect(albums).toHaveLength(32);
-    expect(demo.trips).toHaveLength(23);
+    expect(demo.countries).toHaveLength(8);
+    expect(cities).toHaveLength(8);
+    expect(albums).toHaveLength(10);
+    expect(demo.trips).toHaveLength(2);
   });
 
-  it('lives in Kyiv', () => {
+  it('lives in Saint Petersburg', () => {
     expect(DEMO_HOME).toEqual({
-      name: 'Kyiv',
-      country: 'Ukraine',
-      countryId: '804',
-      lat: 50.45,
-      lon: 30.52,
+      name: 'Saint Petersburg',
+      country: 'Russia',
+      countryId: '643',
+      lat: 59.93,
+      lon: 30.34,
     });
   });
 
@@ -63,20 +57,41 @@ describe('demo archive', () => {
     }
   });
 
-  it('gives every album at least one stock photo', () => {
+  it('gives every album ten stock photos', () => {
     for (const album of albums) {
-      expect(album.photos.length, album.id).toBeGreaterThan(0);
+      expect(album.photos, album.id).toHaveLength(10);
+      expect(album.photoCount, album.id).toBe(10);
       expect(album.photos.every((photo) => photo.kind === 'stock')).toBe(true);
     }
   });
 
-  it('opens each album of a city on a different photo', () => {
-    const barcelona = cityOf('barcelona');
-    const covers = barcelona.albums.map((album) => {
-      const first = album.photos[0];
-      return first?.kind === 'stock' ? first.file : '';
-    });
-    expect(new Set(covers).size).toBe(barcelona.albums.length);
+  it('shares no photo between two albums', () => {
+    const files = albums.flatMap((album) =>
+      album.photos.map((photo) => (photo.kind === 'stock' ? photo.file : '')),
+    );
+    expect(new Set(files).size).toBe(files.length);
+  });
+
+  it('visits the places of each trip in the order it went', () => {
+    const cityOfAlbum = new Map(
+      cities.flatMap((city) => city.albums.map((album) => [album.id, city.key] as const)),
+    );
+    const route = (index: number) =>
+      (demo.trips[index]?.albumIds ?? [])
+        .map((id) => albums.find((album) => album.id === id))
+        .filter((album) => album !== undefined)
+        .sort((a, b) => a.year - b.year || a.month - b.month || a.day - b.day)
+        .map((album) => cityOfAlbum.get(album.id));
+    expect(route(0)).toEqual(['athens', 'valletta', 'lisbon']);
+    expect(route(1)).toEqual([
+      'rio-de-janeiro',
+      'montevideo',
+      'bellingshausen-station',
+      'buenos-aires',
+      'montevideo',
+      'rio-de-janeiro',
+      'kaliningrad',
+    ]);
   });
 
   it('credits only demo cities', () => {

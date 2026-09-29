@@ -313,8 +313,11 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
 
     // on a phone the albums sit over the top of the globe: they step down while the plane is there
     if (width <= 767) {
-      const low = albumsLow(appStore.get().albumsLow, planeY);
-      if (low !== appStore.get().albumsLow) appStore.set({ albumsLow: low });
+      // the plane while it flies, the place it lands at after that
+      const landed = places.find((place) => place.visible && place.city.key === view.focusCityKey);
+      const now = appStore.get();
+      const low = now.focus < 0 ? false : albumsLow(now.albumsLow, planeY ?? landed?.y ?? null);
+      if (low !== now.albumsLow) appStore.set({ albumsLow: low });
     }
 
     updateHover();
