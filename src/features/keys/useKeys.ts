@@ -1,16 +1,42 @@
 import { useEffect } from 'react';
+import type { Archive } from '@/data/archive';
+import { appStore } from '@/state/app-state';
+import { closePhoto, escapeTarget, stepPhoto, toggleSlideshow } from '@/state/layers';
 import type { Director } from '@/tour/director';
 
-/** Esc lets go (place, then range), ← → move between albums, ↑ ↓ scroll them, Space plays. */
-export const useKeys = (director: Director): void => {
+/**
+ * Esc closes the innermost layer (menu, photo window, then the place in focus, then the range).
+ * In the photo window ← → turn the photos and Space runs the slideshow; on the main screen
+ * ← → move between albums, ↑ ↓ scroll them and Space plays or pauses the tour.
+ */
+export const useKeys = (director: Director, archive: Archive): void => {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest('input, textarea, select')) return;
+      const state = appStore.get();
+
+      if (event.key === 'Escape') {
+        const layer = escapeTarget(state);
+        if (layer === 'menu') appStore.set({ menu: null });
+        else if (layer === 'photo') closePhoto(appStore);
+        else director.escape();
+        return;
+      }
+
+      if (state.photo) {
+        const count = archive.albumById.get(state.photo.albumId)?.photos.length ?? 0;
+        if (event.key === 'ArrowRight') stepPhoto(appStore, count, 1);
+        else if (event.key === 'ArrowLeft') stepPhoto(appStore, count, -1);
+        else if (event.key === ' ') {
+          if (target?.closest('button')) return;
+          event.preventDefault();
+          toggleSlideshow(appStore);
+        }
+        return;
+      }
+
       switch (event.key) {
-        case 'Escape':
-          director.escape();
-          break;
         case 'ArrowRight':
           director.next(1);
           break;
@@ -37,5 +63,5 @@ export const useKeys = (director: Director): void => {
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [director]);
+  }, [director, archive]);
 };

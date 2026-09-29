@@ -23,7 +23,7 @@ export function Stage({ world }: { world: World }) {
       },
     }),
   );
-  useKeys(director);
+  useKeys(director, world.archive);
 
   return (
     <DirectorContext value={director}>
