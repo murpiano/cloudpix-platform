@@ -7,10 +7,10 @@ import type { Credit, Place } from '@/data/types';
 import { earthFromTopology } from '@/geo/world';
 import type { EarthGeo, WorldTopology } from '@/geo/world';
 import { demoUrl } from '@/lib/assets';
-import { buildLights } from '@/render/lights';
+import { lightsFromRows } from '@/render/lights';
 import { setSource } from '@/state/owner';
 import { userStore } from '@/state/user';
-import type { Light } from '@/render/lights';
+import type { Light, LightRow } from '@/render/lights';
 
 export { demoUrl };
 
@@ -33,9 +33,10 @@ const fetchJson = async <T>(path: string): Promise<T> => {
 
 /** Loads the world map and the archive: the demo traveller, or the owner's own. */
 export const loadWorld = async (): Promise<World> => {
-  const [topology, credits] = await Promise.all([
+  const [topology, credits, rows] = await Promise.all([
     fetchJson<WorldTopology>('countries-110m.json'),
     fetchJson<Credit[]>('photos.json'),
+    fetchJson<LightRow[]>('lights.json'),
   ]);
   const earth = earthFromTopology(topology);
   const { user } = userStore.get();
@@ -45,7 +46,7 @@ export const loadWorld = async (): Promise<World> => {
   setSource(archive, repo);
   return {
     earth,
-    lights: buildLights(earth.land),
+    lights: lightsFromRows(rows),
     archive,
     home: user?.home ?? DEMO_HOME,
     credits: new Map(credits.map((credit) => [credit.file, credit])),

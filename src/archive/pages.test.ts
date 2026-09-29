@@ -29,8 +29,8 @@ const album = (title: string) => {
 describe('journeys', () => {
   it('lists the trips newest first', () => {
     const list = journeys(archive);
-    expect(list).toHaveLength(2);
-    expect(list[0]?.name).toBe('South America and the ice');
+    expect(list).toHaveLength(10);
+    expect(list[0]?.name).toBe('Barcelona in March');
     expect(list[list.length - 1]?.name).toBe('Mediterranean autumn');
     expect(list.every((j) => j.real)).toBe(true);
   });
@@ -102,8 +102,10 @@ describe('tripRoute', () => {
 describe('groups and photos', () => {
   it('groups albums by year, latest first, each year by date', () => {
     const groups = albumsByYear(archive.albums);
-    expect(groups.map((g) => g.year)).toEqual([2020, 2019, 2016]);
-    expect(groups.map((g) => g.albums.length)).toEqual([5, 2, 4]);
+    expect(groups.map((g) => g.year)).toEqual([
+      2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016,
+    ]);
+    expect(groups.map((g) => g.albums.length)).toEqual([1, 1, 2, 2, 1, 1, 5, 2, 2, 1, 4]);
   });
 
   it('puts up to three photos in a folder, none for an empty album', () => {

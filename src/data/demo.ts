@@ -148,6 +148,137 @@ const COUNTRIES: RawCountry[] = [
       },
     ],
   },
+  {
+    id: '792',
+    name: 'Turkey',
+    cities: [
+      {
+        name: 'Istanbul',
+        key: 'istanbul',
+        lat: 41.01,
+        lon: 28.98,
+        albums: [['Two continents by ferry', 2017, 6, 10]],
+      },
+    ],
+  },
+  {
+    id: '380',
+    name: 'Italy',
+    cities: [
+      {
+        name: 'Rome',
+        key: 'rome',
+        lat: 41.9,
+        lon: 12.5,
+        albums: [['Seven hills, one week', 2018, 5, 8]],
+      },
+      {
+        name: 'Venice',
+        key: 'venice',
+        lat: 45.44,
+        lon: 12.33,
+        albums: [['Fog and gondolas', 2018, 5, 15]],
+      },
+    ],
+  },
+  {
+    id: '268',
+    name: 'Georgia',
+    cities: [
+      {
+        name: 'Tbilisi',
+        key: 'tbilisi',
+        lat: 41.72,
+        lon: 44.79,
+        albums: [['Wine and balconies', 2021, 9, 12]],
+      },
+    ],
+  },
+  {
+    id: '051',
+    name: 'Armenia',
+    cities: [
+      {
+        name: 'Yerevan',
+        key: 'yerevan',
+        lat: 40.18,
+        lon: 44.51,
+        albums: [['Ararat at dawn', 2022, 8, 9]],
+      },
+    ],
+  },
+  {
+    id: '250',
+    name: 'France',
+    cities: [
+      {
+        name: 'Paris',
+        key: 'paris',
+        lat: 48.86,
+        lon: 2.35,
+        albums: [['Paris in the rain', 2023, 4, 5]],
+      },
+    ],
+  },
+  {
+    id: '528',
+    name: 'Netherlands',
+    cities: [
+      {
+        name: 'Amsterdam',
+        key: 'amsterdam',
+        lat: 52.37,
+        lon: 4.9,
+        albums: [['Canals and bicycles', 2023, 4, 12]],
+      },
+    ],
+  },
+  {
+    id: '392',
+    name: 'Japan',
+    cities: [
+      {
+        name: 'Tokyo',
+        key: 'tokyo',
+        lat: 35.68,
+        lon: 139.69,
+        albums: [['Neon and quiet', 2024, 4, 3]],
+      },
+      {
+        name: 'Kyoto',
+        key: 'kyoto',
+        lat: 35.01,
+        lon: 135.77,
+        albums: [['Sakura week', 2024, 4, 10]],
+      },
+    ],
+  },
+  {
+    id: '840',
+    name: 'United States',
+    cities: [
+      {
+        name: 'New York',
+        key: 'new-york',
+        lat: 40.71,
+        lon: -74.0,
+        albums: [['Seven days in Manhattan', 2025, 10, 6]],
+      },
+    ],
+  },
+  {
+    id: '724',
+    name: 'Spain',
+    cities: [
+      {
+        name: 'Barcelona',
+        key: 'barcelona',
+        lat: 41.39,
+        lon: 2.17,
+        albums: [['Gaudí and the sea', 2026, 3, 14]],
+      },
+    ],
+  },
 ];
 
 /** The demo trips: a name and the titles of the albums it ties together. */
@@ -168,6 +299,14 @@ const TRIPS: [name: string, albumTitles: string[]][] = [
       'Amber coast',
     ],
   ],
+  ['Istanbul in June', ['Two continents by ferry']],
+  ['Italy by train', ['Seven hills, one week', 'Fog and gondolas']],
+  ['Tbilisi in September', ['Wine and balconies']],
+  ['Armenian summer', ['Ararat at dawn']],
+  ['Paris and Amsterdam', ['Paris in the rain', 'Canals and bicycles']],
+  ['Japan in bloom', ['Neon and quiet', 'Sakura week']],
+  ['New York in October', ['Seven days in Manhattan']],
+  ['Barcelona in March', ['Gaudí and the sea']],
 ];
 
 /** A demo album has a day of its own, so a trip keeps its order, and a time from its title. */

@@ -32,7 +32,7 @@ describe('loadWorld', () => {
     const world = await loadWorld();
     expect(fetch).toHaveBeenCalledWith(demoUrl('countries-110m.json'));
     expect(fetch).toHaveBeenCalledWith(demoUrl('photos.json'));
-    expect(world.archive.cities).toHaveLength(9);
+    expect(world.archive.cities).toHaveLength(20);
     expect(world.home.name).toBe('Saint Petersburg');
     expect(world.lights.length).toBeGreaterThan(1000);
     expect(world.credits.get('w-athens-0.jpg')?.city).toBe('Athens');

@@ -181,7 +181,7 @@ describe('the timeline', () => {
 
   it('refuses a year without albums', () => {
     const { director, state } = setup();
-    expect(director.clickYear(2026)).toBe('empty');
+    expect(director.clickYear(2027)).toBe('empty');
     expect(state().range).toBeNull();
   });
 });
@@ -312,18 +312,65 @@ describe('playing everything with no tour', () => {
     const homes: (string | undefined)[] = [];
     director.play();
     let had = false;
-    for (let t = 0; t < 400000; t += 20) {
+    for (let t = 0; t < 1000000; t += 20) {
       run(20);
       const card = state().endCard;
       if (card && !had) homes.push(archive.albums[state().focus]?.title);
       had = card !== null;
       if (t > 1000 && !state().playing && !state().flying) break;
     }
-    expect(homes).toEqual(['Tram 28 and tiles', 'Amber coast']);
+    // one way home after each trip, the last album of it in time
+    expect(homes).toEqual([
+      'Tram 28 and tiles',
+      'Two continents by ferry',
+      'Fog and gondolas',
+      'Amber coast',
+      'Wine and balconies',
+      'Ararat at dawn',
+      'Canals and bicycles',
+      'Sakura week',
+      'Seven days in Manhattan',
+      'Gaudí and the sea',
+    ]);
     expect(state().atHome).toBe(true);
     expect(state().endCard?.home).toBe(true);
     expect(state().playing).toBe(false);
     expect(state().tourDone).toBe(0);
+  });
+});
+
+describe('the line of the way already flown', () => {
+  const key = (a: readonly number[], b: readonly number[]) =>
+    `${a.map((x) => x.toFixed(2))}>${b.map((x) => x.toFixed(2))}`;
+  const home = [DEMO_HOME.lon, DEMO_HOME.lat];
+  const city = (name: string) => {
+    const found = archive.cities.find((c) => c.name === name);
+    if (!found) throw new Error(name);
+    return [found.lon, found.lat];
+  };
+  const lines = (director: ReturnType<typeof setup>['director']) =>
+    director.view().route.map(([a, b]) => key(a, b));
+
+  it('runs from home to the first place of a trip and back home after the last', () => {
+    const { director, run } = setup();
+    director.showTrip(tripId('Mediterranean autumn'));
+    run(40000);
+    const drawn = lines(director);
+    expect(drawn).toContain(key(home, city('Sevastopol')));
+    expect(drawn).toContain(key(city('Sevastopol'), city('Athens')));
+    expect(drawn).toContain(key(city('Lisbon'), home));
+  });
+
+  it('goes through home between two trips instead of straight from one to the next', () => {
+    const { director, run, state } = setup();
+    director.play();
+    for (let t = 0; t < 1000000 && (t < 1000 || state().playing || state().flying); t += 20)
+      run(20);
+    const drawn = lines(director);
+    expect(drawn).toContain(key(city('Lisbon'), home));
+    expect(drawn).toContain(key(home, city('Rio de Janeiro')));
+    expect(drawn).not.toContain(key(city('Lisbon'), city('Rio de Janeiro')));
+    expect(drawn).toContain(key(city('Kaliningrad'), home));
   });
 });
 

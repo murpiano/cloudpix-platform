@@ -85,7 +85,12 @@ describe('albums', () => {
 
   it('puts a new album into the trip it was given', () => {
     const data = empty();
-    addTrip(data, 't1', { name: 'Spring', start: { home: true }, end: { home: true }, albumIds: [] });
+    addTrip(data, 't1', {
+      name: 'Spring',
+      start: { home: true },
+      end: { home: true },
+      albumIds: [],
+    });
     addAlbum(data, 'a1', fields({ tripId: 't1' }));
     expect(data.trips[0]?.albumIds).toEqual(['a1']);
   });
@@ -103,8 +108,18 @@ describe('albums', () => {
 
   it('takes the album out of its old trip when the trip changes', () => {
     const data = empty();
-    addTrip(data, 't1', { name: 'Spring', start: { home: true }, end: { home: true }, albumIds: [] });
-    addTrip(data, 't2', { name: 'Autumn', start: { home: true }, end: { home: true }, albumIds: [] });
+    addTrip(data, 't1', {
+      name: 'Spring',
+      start: { home: true },
+      end: { home: true },
+      albumIds: [],
+    });
+    addTrip(data, 't2', {
+      name: 'Autumn',
+      start: { home: true },
+      end: { home: true },
+      albumIds: [],
+    });
     addAlbum(data, 'a1', fields({ tripId: 't1' }));
     updateAlbum(data, 'a1', fields({ tripId: 't2' }));
     expect(data.trips[0]?.albumIds).toEqual([]);
@@ -113,7 +128,12 @@ describe('albums', () => {
 
   it('deletes the album, drops it from its trip and hands back its photos', () => {
     const data = empty();
-    addTrip(data, 't1', { name: 'Spring', start: { home: true }, end: { home: true }, albumIds: [] });
+    addTrip(data, 't1', {
+      name: 'Spring',
+      start: { home: true },
+      end: { home: true },
+      albumIds: [],
+    });
     addAlbum(data, 'a1', fields({ tripId: 't1' }));
     const own: PhotoRef = { kind: 'own', id: 'p1', name: 'one.jpg' };
     addPhotos(data, 'a1', [own]);
@@ -159,7 +179,12 @@ describe('photos', () => {
 describe('trips', () => {
   it('creates a trip with its albums and takes them from other trips', () => {
     const data = empty();
-    addTrip(data, 't1', { name: 'Spring', start: { home: true }, end: { home: true }, albumIds: [] });
+    addTrip(data, 't1', {
+      name: 'Spring',
+      start: { home: true },
+      end: { home: true },
+      albumIds: [],
+    });
     addAlbum(data, 'a1', fields({ tripId: 't1' }));
     const trip = addTrip(data, 't2', {
       name: 'Autumn',

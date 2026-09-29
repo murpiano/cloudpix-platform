@@ -38,6 +38,21 @@ const fly = (from: HTMLElement, to: DOMRect, color?: string) => {
   );
 };
 
+/** Sends the credit into the burger: it shrinks to a point over the button and is gone. */
+const sink = (from: HTMLElement, to: DOMRect) => {
+  const at = from.getBoundingClientRect();
+  const dx = to.left + to.width / 2 - (at.left + at.width / 2);
+  const dy = to.top + to.height / 2 - (at.top + at.height / 2);
+  from.animate(
+    [
+      { transform: 'none', opacity: 1, offset: 0 },
+      { opacity: 0.9, offset: 0.6 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.05)`, opacity: 0, offset: 1 },
+    ],
+    { duration: FLIGHT_MS, easing: EASE, fill: 'forwards' },
+  );
+};
+
 /**
  * The first screen: the name, the line under it, a loading bar and the credit. When the world is
  * ready the name and the line fly to their places in the header while the rest fades away.
@@ -49,6 +64,9 @@ export function Splash({ ready, onRelease }: { ready: boolean; onRelease: () => 
   const [gone, setGone] = useState(false);
   const title = useRef<HTMLHeadingElement>(null);
   const tagline = useRef<HTMLParagraphElement>(null);
+  const credit = useRef<HTMLParagraphElement>(null);
+  const fill = useRef<HTMLDivElement>(null);
+  const crawl = useRef<Animation | null>(null);
   const released = ready && waited;
 
   // the header's own name waits for the flight to arrive
@@ -59,6 +77,20 @@ export function Splash({ ready, onRelease }: { ready: boolean; onRelease: () => 
     };
   }, []);
 
+  // the bar never stops: it crawls on, slower and slower, until the world is in; then it fills
+  useEffect(() => {
+    const bar = fill.current;
+    if (!bar) return;
+    const animation = bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(0.97)' }], {
+      duration: 40000,
+      delay: 1600,
+      easing: 'cubic-bezier(0.1, 0.55, 0.5, 1)',
+      fill: 'both',
+    });
+    crawl.current = animation;
+    return () => animation.cancel();
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => setWaited(true), MIN_MS);
     return () => clearTimeout(timer);
@@ -67,6 +99,16 @@ export function Splash({ ready, onRelease }: { ready: boolean; onRelease: () => 
   useEffect(() => {
     if (!released) return;
     onRelease();
+    const bar = fill.current;
+    if (bar && crawl.current) {
+      const at = new DOMMatrixReadOnly(getComputedStyle(bar).transform).a;
+      crawl.current.cancel();
+      crawl.current = bar.animate([{ transform: `scaleX(${at})` }, { transform: 'scaleX(1)' }], {
+        duration: BUILD_MS,
+        easing: 'ease-out',
+        fill: 'forwards',
+      });
+    }
     const timer = setTimeout(() => setLeaving(true), BUILD_MS);
     return () => clearTimeout(timer);
   }, [released, onRelease]);
@@ -79,6 +121,8 @@ export function Splash({ ready, onRelease }: { ready: boolean; onRelease: () => 
     if (title.current && name) fly(title.current, textBox(name), 'var(--text)');
     if (tagline.current && small)
       fly(tagline.current, small.getBoundingClientRect(), 'var(--muted)');
+    const burger = document.querySelector('.header__burger');
+    if (credit.current && burger) sink(credit.current, burger.getBoundingClientRect());
     const arrive = setTimeout(
       () => delete document.documentElement.dataset.splash,
       FLIGHT_MS * 0.6,
@@ -100,10 +144,10 @@ export function Splash({ ready, onRelease }: { ready: boolean; onRelease: () => 
       <p className="splash__tagline" ref={tagline}>
         Memories of the places I&apos;ve been.
       </p>
-      <div className={`splash__bar${released ? ' is-full' : ''}`}>
-        <div className="splash__fill" />
+      <div className="splash__bar">
+        <div className="splash__fill" ref={fill} />
       </div>
-      <p className="splash__credit">
+      <p className="splash__credit" ref={credit}>
         Design and development by{' '}
         <a href="https://github.com/murpiano" target="_blank" rel="noopener noreferrer">
           murpiano

@@ -14,7 +14,15 @@ export interface Light {
 
 export const LIGHT_COUNT = 1500;
 
-/** Faint city lights: random points on land, the same on every visit, clear of the poles. */
+/** A light as it is stored in `public/demo/lights.json`: longitude, latitude, band. */
+export type LightRow = [lon: number, lat: number, band: number];
+
+/** The stored lights. Finding them takes seconds, so they are found once, ahead of time. */
+export const lightsFromRows = (rows: readonly LightRow[]): Light[] =>
+  rows.map(([lon, lat, band]) => ({ ll: [lon, lat], v: vec(lon, lat), band }));
+
+/** Faint city lights: random points on land, the same on every visit, clear of the poles. Slow: the page reads
+ * `lights.json` instead, and this makes it. */
 export const buildLights = (land: MultiPolygon, count = LIGHT_COUNT): Light[] => {
   const random = seeded(11);
   const lights: Light[] = [];

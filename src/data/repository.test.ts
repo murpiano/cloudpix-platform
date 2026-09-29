@@ -29,7 +29,13 @@ const good = {
     },
   ],
   trips: [
-    { id: 't1', name: 'Spring', start: { home: true }, end: { cityKey: 'paris' }, albumIds: ['a1'] },
+    {
+      id: 't1',
+      name: 'Spring',
+      start: { home: true },
+      end: { cityKey: 'paris' },
+      albumIds: ['a1'],
+    },
   ],
 };
 

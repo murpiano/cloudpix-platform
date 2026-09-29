@@ -1,6 +1,6 @@
 import { geoDistance } from 'd3-geo';
 import type { Archive } from '@/data/archive';
-import { endpointPlace } from '@/data/trips';
+import { endpointPlace, tripOfAlbum } from '@/data/trips';
 import type { City, Endpoint, Place } from '@/data/types';
 import { euler, slerp } from '@/geo/camera';
 import type { Rotation } from '@/geo/camera';
@@ -321,14 +321,37 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const reached = new Set<string>();
     const inLive = new Set<string>();
     const route: [LonLat, LonLat][] = [];
+    const tripOf = albums.map((album) => tripOfAlbum(archive, album.id));
+    const place = (end: Endpoint): LonLat => {
+      const p = endpointPlace(end, archive, home);
+      return [p.lon, p.lat];
+    };
     albums.forEach((album, k) => {
       if (reachedFlags[k]) reached.add(album.city.key);
       if (live && within(timeOf(k), live)) inLive.add(album.city.key);
+      if (k > focus || !reachedFlags[k]) return;
       const previous = albums[k - 1];
-      if (k > 0 && k <= focus && previous && reachedFlags[k - 1] && reachedFlags[k]) {
-        route.push([at(previous.city), at(album.city)]);
+      const before = previous && reachedFlags[k - 1] ? previous : null;
+      const trip = tripOf[k];
+      if (!trip) {
+        if (before) route.push([at(before.city), at(album.city)]);
+        return;
       }
+      if (before && tripOf[k - 1] === trip) {
+        route.push([at(before.city), at(album.city)]);
+        return;
+      }
+      // the first place of a trip: it began where the trip starts, after the last one came home
+      route.push([place(trip.start), at(album.city)]);
+      const last = tripOf[k - 1];
+      if (before && last) route.push([at(before.city), place(last.end)]);
     });
+    // a trip that has just ended: the way back is flown
+    const back = endCard && !leg ? albums.find((album) => album.id === endCard.fromAlbumId) : null;
+    if (back && endCard) {
+      const end = tripOfAlbum(archive, back.id)?.end ?? endCard.tour?.end ?? { home: true };
+      route.push([at(back.city), place(end)]);
+    }
 
     const flight = leg?.flight;
     let legView: LegView | null = null;

@@ -29,6 +29,8 @@ describe('endpointPlace', () => {
 
   it('is the city for a city endpoint, and home when the city is gone', () => {
     expect(endpointPlace({ cityKey: 'athens' }, archive, DEMO_HOME).name).toBe('Athens');
-    expect(endpointPlace({ cityKey: 'atlantis' }, archive, DEMO_HOME).name).toBe('Saint Petersburg');
+    expect(endpointPlace({ cityKey: 'atlantis' }, archive, DEMO_HOME).name).toBe(
+      'Saint Petersburg',
+    );
   });
 });

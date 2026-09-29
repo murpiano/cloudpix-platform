@@ -13,10 +13,10 @@ const albums = cities.flatMap((city) => city.albums);
 
 describe('demo archive', () => {
   it('has the size the design promises', () => {
-    expect(demo.countries).toHaveLength(8);
-    expect(cities).toHaveLength(9);
-    expect(albums).toHaveLength(11);
-    expect(demo.trips).toHaveLength(2);
+    expect(demo.countries).toHaveLength(17);
+    expect(cities).toHaveLength(20);
+    expect(albums).toHaveLength(22);
+    expect(demo.trips).toHaveLength(10);
   });
 
   it('lives in Saint Petersburg', () => {

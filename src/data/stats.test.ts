@@ -16,8 +16,8 @@ describe('journeyStats', () => {
   it('counts everything with nothing picked', () => {
     const stats = journeyStats(archive, times, null, -1);
     expect(stats.scope).toBe('all');
-    expect(stats.countries).toBe(8);
-    expect(stats.totalCountries).toBe(8);
+    expect(stats.countries).toBe(17);
+    expect(stats.totalCountries).toBe(17);
     expect(stats.photos).toBe(allPhotos);
     expect(stats.km).toBeGreaterThan(25000);
   });
