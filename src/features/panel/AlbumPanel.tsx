@@ -31,12 +31,13 @@ export function AlbumPanel({ world }: { world: World }) {
   const focus = useStore(appStore, (s) => s.focus);
   const endCard = useStore(appStore, (s) => s.endCard);
   const tour = useStore(appStore, (s) => s.tour);
+  const low = useStore(appStore, (s) => s.albumsLow);
   const album = archive.albums[focus];
   const scope = tour ?? endCard?.tour ?? null;
   const list = album ? scopedAlbums(cityAlbums(archive, album.city.key), tour) : [];
 
   return (
-    <section className={`panel${album ? '' : ' is-hidden'}`} aria-label="The place in focus">
+    <section className={`panel${album ? '' : ' is-hidden'}${low ? ' is-low' : ''}`} aria-label="The place in focus">
       {album && <LetGo />}
       <div className="panel__media">
         {album && <PanelHead archive={archive} list={list} focus={focus} scope={scope} />}

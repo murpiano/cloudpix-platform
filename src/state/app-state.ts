@@ -73,6 +73,8 @@ export interface AppState {
   focus: number;
   /** The plane has landed at home after a trip. */
   atHome: boolean;
+  /** On a phone: the album cards sit at the bottom, because the plane is flying at the top. */
+  albumsLow: boolean;
   /** A flight (or a camera turn) is under way. */
   flying: boolean;
   /** Length of the flight under way, for the caption. */
@@ -104,6 +106,7 @@ export const INITIAL_STATE: AppState = {
   paused: false,
   focus: -1,
   atHome: false,
+  albumsLow: false,
   flying: false,
   flightKm: null,
   endCard: null,

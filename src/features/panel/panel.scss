@@ -76,6 +76,12 @@
     align-items: flex-end;
     width: auto;
 
+    // the plane is flying over the top: the cards step down out of its way, above the timeline
+    &.is-low {
+      top: auto;
+      bottom: 110px;
+    }
+
     &__media {
       flex: 0 0 44%;
     }

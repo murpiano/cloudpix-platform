@@ -31,6 +31,7 @@ import type { Light } from '@/render/lights';
 import { PLACE_LOOK, placeState, stepLook } from '@/render/places';
 import type { PlaceLook } from '@/render/places';
 import { createSky, drawSky, drawStarField, STAR_PAD, starDrift, stepSky } from '@/render/sky';
+import { albumsLow } from './albums';
 import { appStore } from '@/state/app-state';
 import { placeFacts } from '@/tour/director';
 import type { Director } from '@/tour/director';
@@ -292,11 +293,13 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
       if (points.length < 2) points.push(path(upto));
       painter.leg(points, alpha, -view.now / 60);
     }
+    let planeY: number | null = null;
     if (view.plane && faces(vec(view.plane.at[0], view.plane.at[1]), centre, t, 0)) {
       const p = projection(view.plane.at);
       const q0 = projection(view.plane.behind);
       const q1 = projection(view.plane.ahead);
       if (p && q0 && q1) {
+        planeY = p[1];
         painter.plane(
           p[0],
           p[1],
@@ -306,6 +309,12 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
           view.plane.turn,
         );
       }
+    }
+
+    // on a phone the albums sit over the top of the globe: they step down while the plane is there
+    if (width <= 767) {
+      const low = albumsLow(appStore.get().albumsLow, planeY);
+      if (low !== appStore.get().albumsLow) appStore.set({ albumsLow: low });
     }
 
     updateHover();
