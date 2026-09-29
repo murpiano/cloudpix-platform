@@ -1,9 +1,10 @@
 import { demoUrl } from '@/lib/assets';
+import { ownUrl } from './blobs';
 import type { City, Credit, PhotoRef } from './types';
 
-/** The owner's photos get their urls from the local repository in plan 5. */
+/** A stock photo comes from the bundle; the owner's comes from the blob registered on load. */
 export const photoUrl = (photo: PhotoRef): string | null =>
-  photo.kind === 'stock' ? demoUrl(`photos/${photo.file}`) : null;
+  photo.kind === 'stock' ? demoUrl(`photos/${photo.file}`) : ownUrl(photo.id);
 
 export const creditLine = (
   photo: PhotoRef,

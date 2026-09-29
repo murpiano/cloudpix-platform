@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { linkArchive } from './archive';
+import { forgetOwnUrls, rememberOwnUrl } from './blobs';
 import { cityPhotos, creditLine, photoUrl } from './photos';
 import type { AlbumData, Credit } from './types';
 
@@ -69,5 +70,18 @@ describe('cityPhotos', () => {
       'p1.jpg',
       'p2.jpg',
     ]);
+  });
+});
+
+describe('photoUrl for the owner', () => {
+  it('gives back the url the blob was registered under', () => {
+    forgetOwnUrls();
+    rememberOwnUrl('p1', 'blob:fake');
+    expect(photoUrl({ kind: 'own', id: 'p1', name: 'one.jpg' })).toBe('blob:fake');
+  });
+
+  it('gives back nothing when the blob is gone, so the tile stays blank', () => {
+    forgetOwnUrls();
+    expect(photoUrl({ kind: 'own', id: 'p1', name: 'one.jpg' })).toBeNull();
   });
 });
