@@ -35,6 +35,7 @@ describe('loadWorld', () => {
     expect(world.archive.cities).toHaveLength(22);
     expect(world.home.name).toBe('Kyiv');
     expect(world.lights.length).toBeGreaterThan(1000);
+    expect(world.credits.get('w-paris-0.jpg')?.city).toBe('Paris');
   });
 
   it('fails loudly when a file is missing', async () => {

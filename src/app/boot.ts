@@ -15,6 +15,8 @@ export interface World {
   lights: Light[];
   archive: Archive;
   home: Place;
+  /** Photo credits of the demo, by file name. */
+  credits: ReadonlyMap<string, Credit>;
 }
 
 const fetchJson = async <T>(path: string): Promise<T> => {
@@ -37,5 +39,6 @@ export const loadWorld = async (): Promise<World> => {
     lights: buildLights(earth.land),
     archive: linkArchive(buildDemo(credits)),
     home: DEMO_HOME,
+    credits: new Map(credits.map((credit) => [credit.file, credit])),
   };
 };

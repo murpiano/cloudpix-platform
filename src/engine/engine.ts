@@ -20,17 +20,20 @@ import {
 } from '@/geo/projection';
 import type { Unroll } from '@/geo/projection';
 import { vec } from '@/geo/vector';
-import type { Vec3 } from '@/geo/vector';
+import type { LonLat, Vec3 } from '@/geo/vector';
 import type { EarthGeo } from '@/geo/world';
 import { ease, pulse } from '@/lib/easing';
 import { clamp, DEG } from '@/lib/math';
 import { createPainter, placeBase, placeRadius } from '@/render/globe';
 import type { PlaceSprite } from '@/render/globe';
+import { createSmoke, stepSmoke } from '@/render/house';
 import type { Light } from '@/render/lights';
-import { PLACE_LOOK, stepLook } from '@/render/places';
+import { PLACE_LOOK, placeState, stepLook } from '@/render/places';
 import type { PlaceLook } from '@/render/places';
 import { createSky, drawSky, drawStarField, STAR_PAD, starDrift, stepSky } from '@/render/sky';
 import { appStore } from '@/state/app-state';
+import { placeFacts } from '@/tour/director';
+import type { Director } from '@/tour/director';
 import { frameStep } from './clock';
 import { createGesture } from './gesture';
 import type { PointerInput } from './gesture';
@@ -47,6 +50,7 @@ export interface EngineOptions {
   lights: Light[];
   archive: Archive;
   home: Place;
+  director: Director;
 }
 
 export interface GlobeEngine {
@@ -66,7 +70,6 @@ interface PlaceRuntime {
   v: Vec3;
   photos: number;
   look: PlaceLook;
-  pulseAt: number;
   x: number;
   y: number;
   /** Glow radius, at least `HIT_MIN`. */
@@ -92,7 +95,7 @@ const sizeCanvas = (canvas: HTMLCanvasElement, width: number, height: number, dp
  * state says `paused`, the camera, the input, and all drawing on the three canvases.
  */
 export const createEngine = (options: EngineOptions): GlobeEngine => {
-  const { stars, globe, label, earth, lights, archive, home } = options;
+  const { stars, globe, label, earth, lights, archive, home, director } = options;
   const g = context(globe);
   const skyCtx = context(options.sky);
   const starsCtx = context(stars);
@@ -135,13 +138,15 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     v: vec(city.lon, city.lat),
     photos: photoTotal(city),
     look: { ...PLACE_LOOK.plain },
-    pulseAt: -Infinity,
     x: 0,
     y: 0,
     r: HIT_MIN,
     visible: false,
   }));
   const homeV = vec(home.lon, home.lat);
+  let homeLit = 0;
+  const smoke = createSmoke();
+  let wasFocused = false;
 
   // input
   const gesture = createGesture();
@@ -167,13 +172,13 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     sky = createSky(width, height, mobile);
   };
 
-  const measure = () => {
+  const measure = (zoom: number) => {
     cx = mobile ? width / 2 : width * 0.6;
     cy = mobile ? height * 0.58 : height * 0.5;
     const zf = zFlat({ width, height, cx, cy, r0 });
     unroll = stepUnroll(unroll, t, zTarget, zf, worldNow);
     t = unrollT(unroll, worldNow);
-    r = r0 * (unroll.flat ? Math.max(z, zf) : z);
+    r = r0 * (unroll.flat ? Math.max(z, zf) : zoom);
     lim = 90 - t * (90 - flatLatLimit(cy, height, r));
   };
 
@@ -228,14 +233,16 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     }
   };
 
-  const draw = (f: number) => {
+  const draw = (f: number, dt: number) => {
+    const view = director.view();
     g.clearRect(0, 0, width, height);
     painter.earth({ width, height, cx, cy, r, t, centre }, earth, lights);
 
     const base = placeBase(r);
     const sprites: PlaceSprite[] = [];
     for (const place of places) {
-      place.look = stepLook(place.look, 'plain', f, place === hovered);
+      const state = placeState(placeFacts(view, place.city.key));
+      place.look = stepLook(place.look, state, f, place === hovered);
       place.visible = faces(place.v, centre, t, 0.02);
       if (!place.visible) continue;
       const point = projection([place.city.lon, place.city.lat]);
@@ -247,7 +254,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
         x: point[0],
         y: point[1],
         look: place.look,
-        pulse: pulse(worldNow - place.pulseAt, PULSE_MS),
+        pulse: pulse(view.now - (view.pulseAt.get(place.city.key) ?? -Infinity), PULSE_MS),
         photos: place.photos,
       };
       place.x = sprite.x;
@@ -257,16 +264,32 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     }
     painter.places(sprites, base);
 
+    // home: lit while someone is there, one pulse on coming home
+    homeLit = ease(homeLit, view.homeLit, f, 0.95);
+    stepSmoke(smoke, dt, homeLit);
     if (faces(homeV, centre, t, 0.02)) {
       const point = projection([home.lon, home.lat]);
       if (point) {
-        painter.home({
-          x: point[0],
-          y: point[1],
-          k: clamp(r / 300, 1, 2.2) * 0.5,
-          pulse: 0,
-          lit: 0,
-        });
+        const homePulse = pulse(view.now - view.homePulseAt, PULSE_MS);
+        const k = clamp(r / 300, 1, 2.2) * 0.5 * (1 + 0.35 * homePulse);
+        painter.home({ x: point[0], y: point[1], k, pulse: homePulse, lit: homeLit }, smoke);
+      }
+    }
+
+    painter.route(view.route);
+    if (view.leg) {
+      const { path, upto, alpha } = view.leg;
+      const points: LonLat[] = [];
+      for (let k = 0; k <= upto + 1e-4; k += 0.005) points.push(path(Math.min(k, upto)));
+      if (points.length < 2) points.push(path(upto));
+      painter.leg(points, alpha, -view.now / 60);
+    }
+    if (view.plane && faces(vec(view.plane.at[0], view.plane.at[1]), centre, t, 0)) {
+      const p = projection(view.plane.at);
+      const q0 = projection(view.plane.behind);
+      const q1 = projection(view.plane.ahead);
+      if (p && q0 && q1) {
+        painter.plane(p[0], p[1], Math.atan2(q1[1] - q0[1], q1[0] - q0[0]), view.plane.alpha);
       }
     }
 
@@ -279,8 +302,20 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     worldNow += dt;
 
     z = ease(z, zTarget, f, 0.9);
-    measure();
-    if (!dragging) {
+    const drive = director.step(dt, rot, z);
+    if (drive.rot) {
+      rot = drive.rot;
+      vx = vy = 0;
+    }
+    if (drive.steering) spin = 0;
+    // a place in focus stops the spin; letting go of it starts it again
+    const focused = director.focused;
+    if (focused !== wasFocused) {
+      spinning = !focused;
+      wasFocused = focused;
+    }
+    measure(unroll.flat ? z : drive.zoom);
+    if (!dragging && !drive.steering) {
       if (vx || vy) {
         rot = turn(rot, vx * f, vy * f, t);
         const keep = THROW_DECAY ** f;
@@ -302,7 +337,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     const [driftX, driftY] = starDrift(worldNow);
     stars.style.transform = `translate(${driftX}px, ${driftY}px)`;
 
-    draw(f);
+    draw(f, dt);
     frameId = requestAnimationFrame(frame);
   };
 
@@ -317,14 +352,19 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     buttons: event.buttons,
   });
 
-  const release = (dragged: boolean) => {
+  const release = (dragged: boolean, x: number, y: number) => {
     dragging = false;
     updateCursor();
-    if (!dragged) return;
+    if (!dragged) {
+      // a tap on a light picks it
+      const place = placeAt(x, y);
+      if (place) director.pickCity(place.city.key);
+      return;
+    }
     [vx, vy] = throwVelocity(samples, performance.now());
     spinDir = spinDirection(vx, vy, rot[2], spinDir);
-    // let go, with or without a throw: the Earth picks its spin back up
-    spinning = true;
+    // a throw sets the Earth spinning; without one it spins again only if nothing is in focus
+    spinning = !director.focused || Math.hypot(vx, vy) > 0.12;
   };
 
   const onPointerDown = (event: PointerEvent) => {
@@ -343,7 +383,11 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     if (event.pointerType === 'mouse') mouse = [event.clientX, event.clientY];
     const next = gesture.move(input(event));
     if (next.kind === 'release') {
-      release(next.dragged);
+      if (next.dragged) release(true, event.clientX, event.clientY);
+      else {
+        dragging = false;
+        updateCursor();
+      }
       return;
     }
     if (next.kind === 'pinch') {
@@ -356,6 +400,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     if (next.started) {
       vx = vy = spin = 0;
       spinning = false;
+      director.letGo();
     }
     const perPixel = 1 / DEG / r; // degrees per pixel at the current size
     const dx = next.dx * perPixel;
@@ -368,7 +413,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
 
   const onPointerUp = (event: PointerEvent) => {
     const done = gesture.up(input(event));
-    if (done) release(done.dragged);
+    if (done) release(done.dragged, event.clientX, event.clientY);
   };
 
   const onPointerLeave = () => {
@@ -396,6 +441,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     Object.assign(window, {
       __globe: {
         state: () => ({ z, zTarget, t, flat: unroll.flat, rot, spin, worldNow }),
+        app: () => appStore.get(),
         setZoom: (value: number) => {
           zTarget = clamp(value, Z_MIN, Z_MAX);
         },

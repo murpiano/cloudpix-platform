@@ -1,10 +1,11 @@
 import { geoPath } from 'd3-geo';
 import type { GeoPermissibleObjects, GeoProjection } from 'd3-geo';
 import { faces } from '@/geo/projection';
-import type { Vec3 } from '@/geo/vector';
+import type { LonLat, Vec3 } from '@/geo/vector';
 import type { EarthGeo } from '@/geo/world';
 import { clamp } from '@/lib/math';
-import { drawHouse } from './house';
+import { drawHouse, drawSmoke } from './house';
+import type { Smoke } from './house';
 import type { Light } from './lights';
 import type { PlaceLook } from './places';
 
@@ -56,6 +57,7 @@ export const placeRadius = ({ photos, look, pulse }: PlaceSprite, base: number):
 export const createPainter = (ctx: CanvasRenderingContext2D, projection: GeoProjection) => {
   const svg = geoPath(projection).digits(1);
   const shape = (object: GeoPermissibleObjects): Path2D => new Path2D(svg(object) ?? '');
+  const line = geoPath(projection, ctx);
 
   /** Atmosphere, ocean, land, borders and the faint city lights. */
   const earth = ({ cx, cy, r, t, centre }: GlobeView, geo: EarthGeo, lights: readonly Light[]) => {
@@ -151,8 +153,8 @@ export const createPainter = (ctx: CanvasRenderingContext2D, projection: GeoProj
     }
   };
 
-  /** Home: a warm glow and the small house. */
-  const home = ({ x, y, k, pulse, lit }: HomeSprite) => {
+  /** Home: a warm glow, the chimney smoke and the small house. */
+  const home = ({ x, y, k, pulse, lit }: HomeSprite, smoke: Smoke) => {
     const warm = Math.max(pulse, lit * 0.8, 0.15);
     const gy = y - 4 * k;
     const glow = ctx.createRadialGradient(x, gy, 0, x, gy, 22 * k);
@@ -162,10 +164,52 @@ export const createPainter = (ctx: CanvasRenderingContext2D, projection: GeoProj
     ctx.beginPath();
     ctx.arc(x, gy, 22 * k, 0, 2 * Math.PI);
     ctx.fill();
+    drawSmoke(ctx, smoke, x, y, k);
     drawHouse(ctx, x, y, k, lit);
   };
 
-  return { earth, places, home };
+  /** The route so far: faint great circles between the places already reached. */
+  const route = (segments: readonly [LonLat, LonLat][]) => {
+    if (segments.length === 0) return;
+    ctx.beginPath();
+    for (const [a, b] of segments) line({ type: 'LineString', coordinates: [a, b] });
+    ctx.strokeStyle = 'rgba(255,200,120,.16)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  };
+
+  /** The current leg, dashed and moving, drawn up to the plane. */
+  const leg = (points: LonLat[], alpha: number, dashOffset: number) => {
+    ctx.beginPath();
+    line({ type: 'LineString', coordinates: points });
+    ctx.strokeStyle = `rgba(255,214,150,${alpha})`;
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([6, 6]);
+    ctx.lineDashOffset = dashOffset;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+
+  /** The plane: a small white arrow with a warm glow. */
+  const plane = (x: number, y: number, angle: number, alpha: number) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.shadowColor = 'rgba(255,220,160,.9)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(9, 0);
+    ctx.lineTo(-6, -5.5);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-6, 5.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  return { earth, places, home, route, leg, plane };
 };
 
 export type Painter = ReturnType<typeof createPainter>;

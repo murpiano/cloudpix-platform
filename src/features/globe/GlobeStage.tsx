@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import type { World } from '@/app/boot';
 import { createEngine } from '@/engine/engine';
+import type { Director } from '@/tour/director';
 import { PlaceLabel } from './PlaceLabel';
 import './globe.scss';
 
 /** The three canvases (stars, sky events, globe) and the hover label, driven by the engine. */
-export function GlobeStage({ world }: { world: World }) {
+export function GlobeStage({ world, director }: { world: World; director: Director }) {
   const stars = useRef<HTMLCanvasElement>(null);
   const sky = useRef<HTMLCanvasElement>(null);
   const globe = useRef<HTMLCanvasElement>(null);
@@ -21,9 +22,10 @@ export function GlobeStage({ world }: { world: World }) {
       globe: globe.current,
       label: label.current,
       ...world,
+      director,
     });
     return () => engine.destroy();
-  }, [world]);
+  }, [world, director]);
 
   return (
     <div className="globe-stage">

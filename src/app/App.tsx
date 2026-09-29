@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { GlobeStage } from '@/features/globe/GlobeStage';
 import { Header } from '@/features/header/Header';
 import { loadWorld } from './boot';
 import type { World } from './boot';
+import { Stage } from './Stage';
 import './app.scss';
 
 type Boot = { status: 'loading' } | { status: 'ready'; world: World } | { status: 'failed' };
@@ -28,7 +28,7 @@ export function App() {
 
   return (
     <>
-      {boot.status === 'ready' && <GlobeStage world={boot.world} />}
+      {boot.status === 'ready' && <Stage world={boot.world} />}
       {boot.status === 'loading' && <p className="boot">Loading the map…</p>}
       {boot.status === 'failed' && (
         <div className="boot" role="alert">
