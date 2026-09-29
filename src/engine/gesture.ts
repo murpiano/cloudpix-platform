@@ -56,6 +56,8 @@ export const createGesture = () => {
       pointers.set(pointer.id, [pointer.x, pointer.y]);
       downAt = [pointer.x, pointer.y];
       if (pointers.size === 2) {
+        // a pinch is never a tap
+        moved = true;
         pinchFrom = spread();
         return 'pinch';
       }

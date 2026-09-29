@@ -48,6 +48,17 @@ describe('review findings', () => {
   });
 });
 
+describe('review findings, part 2', () => {
+  it('never takes a pinch for a tap', () => {
+    const gesture = createGesture();
+    gesture.down(touch(1, 100, 100));
+    gesture.down(touch(2, 200, 100));
+    gesture.move(touch(2, 260, 100));
+    gesture.up(touch(2, 260, 100));
+    expect(gesture.up(touch(1, 100, 100))).toEqual({ dragged: true });
+  });
+});
+
 describe('createGesture', () => {
   it('turns a press that moves more than 5 px into a drag', () => {
     const gesture = createGesture();

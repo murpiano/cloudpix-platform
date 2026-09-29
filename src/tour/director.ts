@@ -239,8 +239,10 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     pulseAt.set(album.city.key, now);
   };
 
+  /** Turns the camera at once; a flight started right after starts from this view. */
   const snapTo = ([lon, lat]: LonLat) => {
     snap = [-lon, -lat, 0];
+    rot = snap;
   };
 
   /** Leave whatever was on: "Show on map" starts clean. */
@@ -379,6 +381,11 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
       const { playing, tour, focus, endCard } = get();
       if (playing) {
         stop();
+        return;
+      }
+      // mid-flight, play only resumes: the plane lands where it was going, then the tour goes on
+      if (leg) {
+        set({ playing: true });
         return;
       }
       if (tour && focus >= 0 && !endCard) {

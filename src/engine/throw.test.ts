@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pushSample, spinDirection, THROW_MAX, throwVelocity } from './throw';
+import { nextSpinning, pushSample, spinDirection, THROW_MAX, throwVelocity } from './throw';
 import type { DragSample } from './throw';
 
 describe('pushSample', () => {
@@ -60,5 +60,29 @@ describe('spinDirection', () => {
   it('keeps its way after a soft or vertical throw', () => {
     expect(spinDirection(0.05, 0.05, 0, -1)).toBe(-1);
     expect(spinDirection(0.01, 3, 0, -1)).toBe(-1);
+  });
+});
+
+describe('nextSpinning', () => {
+  it('stops a thrown spin when a flight takes the camera, so the landing stays put', () => {
+    // thrown while a place is in focus: spinning; then a flight steers the camera
+    expect(nextSpinning({ spinning: true, focused: true, wasFocused: true, steering: true })).toBe(
+      false,
+    );
+  });
+
+  it('stops for a new focus and starts again when the focus goes', () => {
+    expect(nextSpinning({ spinning: true, focused: true, wasFocused: false, steering: false })).toBe(
+      false,
+    );
+    expect(nextSpinning({ spinning: false, focused: false, wasFocused: true, steering: false })).toBe(
+      true,
+    );
+  });
+
+  it('keeps a thrown spin while nothing steers', () => {
+    expect(nextSpinning({ spinning: true, focused: true, wasFocused: true, steering: false })).toBe(
+      true,
+    );
   });
 });

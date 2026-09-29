@@ -37,7 +37,7 @@ import type { Director } from '@/tour/director';
 import { frameStep } from './clock';
 import { createGesture } from './gesture';
 import type { PointerInput } from './gesture';
-import { pushSample, spinDirection, throwVelocity } from './throw';
+import { nextSpinning, pushSample, spinDirection, throwVelocity } from './throw';
 import type { DragSample } from './throw';
 
 export interface EngineOptions {
@@ -308,12 +308,9 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
       vx = vy = 0;
     }
     if (drive.steering) spin = 0;
-    // a place in focus stops the spin; letting go of it starts it again
     const focused = director.focused;
-    if (focused !== wasFocused) {
-      spinning = !focused;
-      wasFocused = focused;
-    }
+    spinning = nextSpinning({ spinning, focused, wasFocused, steering: drive.steering });
+    wasFocused = focused;
     measure(unroll.flat ? z : drive.zoom);
     if (!dragging && !drive.steering) {
       if (vx || vy) {

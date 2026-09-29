@@ -176,6 +176,29 @@ describe('the timeline', () => {
   });
 });
 
+describe('review findings', () => {
+  it('keeps the destination when paused and played again mid-flight', () => {
+    const { director, run, state } = setup();
+    director.showYear(2023);
+    run(DWELL_MIN_MS + APPEAR_MS + 200);
+    expect(state().flying).toBe(true);
+    const target = state().focus;
+    director.play();
+    expect(state().playing).toBe(false);
+    director.play();
+    expect(state().playing).toBe(true);
+    expect(state().focus).toBe(target);
+    expect(state().flying).toBe(true);
+  });
+
+  it('looks at the start of a trip shown on the map', () => {
+    const { director, run, centre } = setup();
+    director.showTrip(tripId('Japan in bloom'));
+    run(APPEAR_MS - 100);
+    expect(geoDistance(centre(), [DEMO_HOME.lon, DEMO_HOME.lat])).toBeLessThan(0.01);
+  });
+});
+
 describe('tours', () => {
   it('flies a trip from its start through its albums and home, with the light on', () => {
     const { director, run, state, changes } = setup();

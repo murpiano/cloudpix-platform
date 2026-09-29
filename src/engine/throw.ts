@@ -45,3 +45,18 @@ export const spinDirection = (vx: number, vy: number, gam: number, current: 1 | 
   const upsideDown = Math.cos(gam * DEG) < 0;
   return (Math.sign(vx) * (upsideDown ? -1 : 1)) as 1 | -1;
 };
+
+export interface SpinFacts {
+  spinning: boolean;
+  focused: boolean;
+  wasFocused: boolean;
+  /** A flight has the camera this frame. */
+  steering: boolean;
+}
+
+/**
+ * Whether the Earth spins by itself: a new focus stops it, letting go of the focus starts it,
+ * and a flight taking the camera ends a thrown spin, so the place it lands on stays in view.
+ */
+export const nextSpinning = ({ spinning, focused, wasFocused, steering }: SpinFacts): boolean =>
+  focused !== wasFocused ? !focused : steering ? false : spinning;

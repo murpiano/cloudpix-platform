@@ -77,6 +77,8 @@
   width: 100%;
   aspect-ratio: 3 / 2;
   pointer-events: auto;
+  // the albums take vertical swipes themselves; the browser must not pan the page instead
+  touch-action: none;
 }
 
 .card {
