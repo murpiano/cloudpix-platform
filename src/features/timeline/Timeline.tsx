@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useDirector } from '@/app/director-context';
+import { goArchive } from '@/features/archive/links';
 import type { Archive } from '@/data/archive';
 import { monthYear } from '@/lib/dates';
 import { appStore } from '@/state/app-state';
@@ -91,8 +92,9 @@ export function Timeline({ archive }: { archive: Archive }) {
   };
 
   const onYear = (year: number) => {
-    // 'open' asks for the year in the archive: plan 4
-    if (director.clickYear(year) === 'empty') flash('No albums that year');
+    const result = director.clickYear(year);
+    if (result === 'empty') flash('No albums that year');
+    else if (result === 'open') goArchive({ kind: 'year', year });
   };
 
   const live = picking ?? range;

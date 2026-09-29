@@ -86,6 +86,23 @@
     transform: none;
   }
 
+  &__link {
+    display: block;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    text-align: left;
+    transition:
+      color 0.3s,
+      border-color 0.3s;
+
+    &:hover {
+      border-color: rgb(255 200 107 / 50%);
+      color: var(--lamp);
+    }
+  }
+
   &__country {
     font-size: 12px;
     letter-spacing: 0.24em;

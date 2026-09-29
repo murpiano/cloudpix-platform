@@ -298,6 +298,18 @@
   }
 }
 
+// with a mouse, the title on the cover opens the album
+@media (hover: hover) {
+  .stack:hover .card--cur .card__title {
+    pointer-events: auto;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--lamp);
+    }
+  }
+}
+
 .stack.is-multi:not(:hover) .card--cur .card__count {
   opacity: 1;
 }
@@ -441,6 +453,49 @@
     &__status {
       display: none;
     }
+  }
+}
+
+// the caption's names open their archive pages; they read as text until hovered
+.caption {
+  .link {
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: inherit;
+    transition:
+      color 0.3s,
+      border-color 0.3s;
+
+    &:hover {
+      border-color: rgb(255 200 107 / 50%);
+      color: var(--lamp);
+    }
+
+    &--strong {
+      font-weight: 500;
+      color: var(--text);
+    }
+  }
+
+  &__place {
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    color: inherit;
+    pointer-events: auto;
+    transition: color 0.3s;
+
+    &:hover {
+      color: var(--lamp);
+    }
+  }
+
+  &__route,
+  &__trip {
+    pointer-events: auto;
   }
 }
 

@@ -8,6 +8,7 @@ import { tripOfAlbum } from '@/data/trips';
 import type { Album, Credit } from '@/data/types';
 import { monthYear } from '@/lib/dates';
 import { useInterval } from '@/lib/useInterval';
+import { goArchive } from '@/features/archive/links';
 import { appStore } from '@/state/app-state';
 import { openPhoto } from '@/state/layers';
 import { settingsStore } from '@/state/settings';
@@ -62,9 +63,21 @@ function PanelHead({
   if (scope) {
     return (
       <div className="panel__years">
-        <span className="is-current">
+        <button
+          type="button"
+          className="is-current"
+          onClick={() =>
+            goArchive(
+              scope.kind === 'year' && scope.year !== null
+                ? { kind: 'year', year: scope.year }
+                : scope.tripId
+                  ? { kind: 'trip', id: scope.tripId }
+                  : { kind: 'trips' },
+            )
+          }
+        >
           {scope.kind === 'year' ? scope.name : `Trip · ${scope.name}`}
-        </span>
+        </button>
       </div>
     );
   }
@@ -80,6 +93,12 @@ function PanelHead({
           type="button"
           className={year === current ? 'is-current' : undefined}
           onClick={() => {
+            // a second click on the current year opens the city in the archive
+            const album = archive.albums[focus];
+            if (year === current && album) {
+              goArchive({ kind: 'city', key: album.city.key });
+              return;
+            }
             const index = list.find((i) => archive.albums[i]?.year === year);
             if (index !== undefined) director.selectAlbum(index);
           }}
@@ -249,7 +268,14 @@ function AlbumCard({
           />
         ))}
       </div>
-      <div className="card__title">
+      <div
+        className="card__title"
+        onClick={(event) => {
+          if (role !== 'cur') return;
+          event.stopPropagation();
+          goArchive({ kind: 'album', id: album.id });
+        }}
+      >
         {album.title}
         <small>
           {monthYear(album)} · {album.photoCount} photos
@@ -297,15 +323,31 @@ function Caption({ world }: { world: World }) {
   if (endCard) {
     const city = endCard.cityKey ? archive.cityByKey.get(endCard.cityKey) : undefined;
     const from = archive.albumById.get(endCard.fromAlbumId) ?? album;
-    const trip = endCard.tour?.kind === 'trip' ? endCard.tour.name : null;
+    const tripId = endCard.tour?.kind === 'trip' ? endCard.tour.tripId : null;
     return (
       <div className="caption" key={`end-${endCard.fromAlbumId}`}>
         <div className="caption__when">{endCard.home ? 'Back home' : 'The end of the road'}</div>
         <div className="caption__place">{city ? city.name : home.name}</div>
         <div className="caption__route">
-          {city ? city.country.name : home.country} · from {from.city.name} · {from.title}
+          {city ? city.country.name : home.country} · from{' '}
+          <button type="button" className="link" onClick={() => goArchive({ kind: 'city', key: from.city.key })}>
+            {from.city.name}
+          </button>{' '}
+          ·{' '}
+          <button type="button" className="link" onClick={() => goArchive({ kind: 'album', id: from.id })}>
+            {from.title}
+          </button>
         </div>
-        <div className="caption__trip">{trip ? `Trip · ${trip}` : ''}</div>
+        <div className="caption__trip">
+          {endCard.tour && tripId && (
+            <>
+              Trip ·{' '}
+              <button type="button" className="link" onClick={() => goArchive({ kind: 'trip', id: tripId })}>
+                {endCard.tour.name}
+              </button>
+            </>
+          )}
+        </div>
         <div className="caption__status">{status}</div>
       </div>
     );
@@ -317,11 +359,37 @@ function Caption({ world }: { world: World }) {
       <div className="caption__when">
         {monthYear(album)} · album {focus + 1} of {archive.albums.length}
       </div>
-      <div className="caption__place">{album.city.name}</div>
+      <button
+        type="button"
+        className="caption__place"
+        onClick={() => goArchive({ kind: 'city', key: album.city.key })}
+      >
+        {album.city.name}
+      </button>
       <div className="caption__route">
-        <span>{album.city.country.name}</span> · {album.title} · {album.photoCount} photos
+        <button
+          type="button"
+          className="link link--strong"
+          onClick={() => goArchive({ kind: 'country', id: album.city.country.id })}
+        >
+          {album.city.country.name}
+        </button>{' '}
+        ·{' '}
+        <button type="button" className="link" onClick={() => goArchive({ kind: 'album', id: album.id })}>
+          {album.title}
+        </button>{' '}
+        · {album.photoCount} photos
       </div>
-      <div className="caption__trip">{trip ? `Trip · ${trip.name}` : ''}</div>
+      <div className="caption__trip">
+        {trip && (
+          <>
+            Trip ·{' '}
+            <button type="button" className="link" onClick={() => goArchive({ kind: 'trip', id: trip.id })}>
+              {trip.name}
+            </button>
+          </>
+        )}
+      </div>
       <div className="caption__status">{status}</div>
     </div>
   );

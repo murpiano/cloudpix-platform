@@ -4,6 +4,7 @@ import type { World } from '@/app/boot';
 import { creditLine, photoUrl } from '@/data/photos';
 import { describeAlbum, photoKey, photoNote } from '@/data/social';
 import type { Album } from '@/data/types';
+import { goArchive } from '@/features/archive/links';
 import { wheelSteps } from '@/features/panel/stack';
 import { monthYear } from '@/lib/dates';
 import { useInterval } from '@/lib/useInterval';
@@ -211,9 +212,27 @@ function PhotoWindow({ world, photo, album }: { world: World; photo: PhotoView; 
 
       <div className="lightbox__scroll">
         <aside className="lightbox__info">
-          <div className="lightbox__country">{album.city.country.name}</div>
-          <div className="lightbox__city">{album.city.name}</div>
-          <div className="lightbox__album">{album.title}</div>
+          <button
+            type="button"
+            className="lightbox__country lightbox__link"
+            onClick={() => goArchive({ kind: 'country', id: album.city.country.id })}
+          >
+            {album.city.country.name}
+          </button>
+          <button
+            type="button"
+            className="lightbox__city lightbox__link"
+            onClick={() => goArchive({ kind: 'city', key: album.city.key })}
+          >
+            {album.city.name}
+          </button>
+          <button
+            type="button"
+            className="lightbox__album lightbox__link"
+            onClick={() => goArchive({ kind: 'album', id: album.id })}
+          >
+            {album.title}
+          </button>
           <div className="lightbox__date">
             {monthYear(album)} · {album.photoCount} photos
           </div>
