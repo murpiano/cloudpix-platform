@@ -3,9 +3,10 @@ import type { World } from '@/app/boot';
 import { removePhoto, setCaption } from '@/data/edits';
 import { photoUrl } from '@/data/photos';
 import { photoKey, photoNote } from '@/data/social';
-import { editArchive } from '@/state/owner';
+
 import { ConfirmButton } from './ConfirmButton';
 import { Acts, Sheet } from './Sheet';
+import { useEdit } from './useEdit';
 
 /** One photo: its own line, or away with it. */
 export function PhotoForm({
@@ -22,6 +23,7 @@ export function PhotoForm({
   const album = world.archive.albumById.get(albumId);
   const photo = album?.photos.find((one) => photoKey(one) === key);
   const [caption, setText] = useState(photo?.caption ?? '');
+  const { trouble, run } = useEdit(onClose);
   if (!photo) return null;
   const url = photoUrl(photo);
 
@@ -42,10 +44,10 @@ export function PhotoForm({
           label="Delete photo"
           ask="Delete it from the album?"
           onConfirm={() => {
-            void editArchive(async (data, repo) => {
+            run(async (data, repo) => {
               const gone = removePhoto(data, albumId, key);
               if (gone) await repo.dropPhotos([gone]);
-            }).then(onClose);
+            });
           }}
         />
         <button type="button" className="sheet__btn" onClick={onClose}>
@@ -55,12 +57,13 @@ export function PhotoForm({
           type="button"
           className="sheet__btn is-main"
           onClick={() => {
-            void editArchive((data) => setCaption(data, albumId, key, caption)).then(onClose);
+            run((data) => setCaption(data, albumId, key, caption));
           }}
         >
           Save
         </button>
       </Acts>
+      {trouble && <p className="sheet__note">{trouble}</p>}
     </Sheet>
   );
 }

@@ -4,17 +4,18 @@ import { albumsByYear, coverOf, dateSpan, findPage, folderPhotos, plural, whenLa
 import type { Journey, PageData } from '@/archive/pages';
 import { visitYears } from '@/data/archive';
 import { addPhotos } from '@/data/edits';
-import { shrinkAll } from '@/data/image';
+
 import { cityPhotos, photoUrl } from '@/data/photos';
 import { describeAlbum, photoKey, photoNote } from '@/data/social';
 import type { Album, City, Country, PhotoRef } from '@/data/types';
+import { attachPhotos } from '@/features/forms/attach';
 import { DropZone } from '@/features/forms/DropZone';
 import { MONTHS } from '@/lib/dates';
 import { appStore } from '@/state/app-state';
 import type { ArchivePage, FormView } from '@/state/app-state';
 import { backArchive, closeArchive, openArchive, SECTIONS, sectionOf } from '@/state/archive-nav';
 import { openForm, openPhoto } from '@/state/layers';
-import { canEdit, editArchive, ownerStore } from '@/state/owner';
+import { canEdit, editArchive, ownerStore, repository } from '@/state/owner';
 import { socialFor, socialStore } from '@/state/social';
 import { useStore } from '@/state/store';
 import type { Director } from '@/tour/director';
@@ -382,18 +383,36 @@ function Folder({ album, showCity }: { album: Album; showCity: boolean }) {
 
 function PhotoGrid({ album, owner }: { album: Album; owner: boolean }) {
   useStore(socialStore, (s) => s.byKey);
-  const add = (files: File[]) => {
-    void editArchive(async (data, repo) => {
-      // a file the browser cannot read is left out; the others still arrive
-      const { ready } = await shrinkAll(files);
-      const refs: PhotoRef[] = [];
-      for (const one of ready) refs.push(await repo.addPhoto(one.blob, one.name));
-      addPhotos(data, album.id, refs);
-    });
+  const [trouble, setTrouble] = useState<string | null>(null);
+  const add = async (files: File[]) => {
+    const repo = repository();
+    if (!repo) return;
+    setTrouble(null);
+    let kept: { refs: PhotoRef[]; skipped: string[] };
+    try {
+      // the photos are kept before the album is touched, so a bad file changes nothing
+      kept = await attachPhotos(files, repo);
+    } catch {
+      setTrouble('The photos could not be kept. Your browser may be out of room.');
+      return;
+    }
+    if (kept.refs.length > 0) {
+      try {
+        await editArchive((data) => addPhotos(data, album.id, kept.refs));
+      } catch {
+        await repo.dropPhotos(kept.refs);
+        setTrouble('The photos could not be kept. Your browser may be out of room.');
+        return;
+      }
+    }
+    if (kept.skipped.length > 0) {
+      setTrouble(`${kept.skipped.join(', ')} could not be read as an image.`);
+    }
   };
   const zone = owner ? (
     <div className="archive__add">
-      <DropZone onFiles={add} />
+      <DropZone onFiles={(files) => void add(files)} />
+      {trouble && <p className="archive__sub">{trouble}</p>}
     </div>
   ) : null;
   if (album.photos.length === 0) {
@@ -416,42 +435,30 @@ function PhotoGrid({ album, owner }: { album: Album; owner: boolean }) {
           openPhoto(appStore, album.id, index, { x, y, width, height });
         };
         return (
-          // a div, not a button: the owner's pencil is a button of its own inside it
-          <div
-            key={key}
-            role="button"
-            tabIndex={0}
-            className="archive__pic"
-            onClick={(event) => open(event.currentTarget)}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return;
-              event.preventDefault();
-              open(event.currentTarget);
-            }}
-          >
-            <div className="archive__photo">
-              <img src={photoUrl(photo) ?? undefined} alt="" loading="lazy" data-photo-key={key} />
-              {owner && (
-                <button
-                  type="button"
-                  className="archive__pencil"
-                  aria-label="Edit photo"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    openForm(appStore, { kind: 'photo', albumId: album.id, photoKey: key });
-                  }}
-                >
-                  ✎
-                </button>
-              )}
-              <div className="archive__meta">
-                <span>
-                  {social.liked ? '♥' : '♡'} {social.likes}
-                </span>
-                <span>{plural(social.comments.length, 'comment')}</span>
+          // the tile opens the photo; the owner's pencil is a button of its own beside it
+          <div key={key} className="archive__pic">
+            <button type="button" className="archive__open" onClick={(event) => open(event.currentTarget)}>
+              <div className="archive__photo">
+                <img src={photoUrl(photo) ?? undefined} alt="" loading="lazy" data-photo-key={key} />
+                <div className="archive__meta">
+                  <span>
+                    {social.liked ? '♥' : '♡'} {social.likes}
+                  </span>
+                  <span>{plural(social.comments.length, 'comment')}</span>
+                </div>
               </div>
-            </div>
-            <p className="archive__cap">{photoNote(photo)}</p>
+              <p className="archive__cap">{photoNote(photo)}</p>
+            </button>
+            {owner && (
+              <button
+                type="button"
+                className="archive__pencil"
+                aria-label="Edit photo"
+                onClick={() => openForm(appStore, { kind: 'photo', albumId: album.id, photoKey: key })}
+              >
+                ✎
+              </button>
+            )}
           </div>
         );
       })}

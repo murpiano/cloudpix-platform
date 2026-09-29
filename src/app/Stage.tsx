@@ -32,6 +32,7 @@ export function Stage({ world }: { world: World }) {
   // an edit can move or remove the album in focus: the director lets go and the tour stops
   useEffect(() => {
     if (rev === 0) return;
+    director.refresh();
     director.deselect();
     director.stop();
     appStore.set({ tour: null, lastTour: null });

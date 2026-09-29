@@ -71,3 +71,37 @@ describe('cleanArchive', () => {
     expect(cleanArchive(raw)?.countries[0]?.cities[0]?.albums[0]?.photoCount).toBe(1);
   });
 });
+
+describe('cleanArchive on data that would break a page', () => {
+  it('drops an album whose month or day is not a date', () => {
+    const raw = structuredClone(good);
+    const albums = raw.countries[0]?.cities[0]?.albums;
+    if (albums?.[0]) albums[0].month = 13;
+    expect(cleanArchive(raw)?.countries[0]?.cities[0]?.albums).toEqual([]);
+  });
+
+  it('keeps one album per id and one city per key', () => {
+    const raw = structuredClone(good);
+    const city = raw.countries[0]?.cities[0];
+    const album = city?.albums[0];
+    if (city && album) {
+      city.albums.push(structuredClone(album));
+      raw.countries[0]?.cities.push(structuredClone(city));
+    }
+    const clean = cleanArchive(raw);
+    expect(clean?.countries[0]?.cities).toHaveLength(1);
+    expect(clean?.countries[0]?.cities[0]?.albums).toHaveLength(1);
+  });
+
+  it('keeps one trip per id and lists each album of a trip once', () => {
+    const raw = structuredClone(good) as { trips: Record<string, unknown>[] };
+    const trip = raw.trips[0];
+    if (trip) {
+      trip.albumIds = ['a1', 'a1'];
+      raw.trips.push(structuredClone(trip));
+    }
+    const clean = cleanArchive(raw);
+    expect(clean?.trips).toHaveLength(1);
+    expect(clean?.trips[0]?.albumIds).toEqual(['a1']);
+  });
+});

@@ -192,7 +192,10 @@ describe('trips', () => {
       start: { cityKey: 'paris' },
       albumIds: [],
     });
+    const trips = data.trips;
     deleteTrip(data, 't1');
+    // the linked archive shares this array: deleting must not swap it for a new one
+    expect(data.trips).toBe(trips);
     expect(data.trips).toEqual([]);
     expect(data.countries[0]?.cities[0]?.albums).toHaveLength(1);
   });

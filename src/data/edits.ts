@@ -163,5 +163,6 @@ export const updateTrip = (data: ArchiveData, tripId: Id, fields: TripFields): v
 
 /** The trip goes; its albums stay where they are. */
 export const deleteTrip = (data: ArchiveData, tripId: Id): void => {
-  data.trips = data.trips.filter((trip) => trip.id !== tripId);
+  const index = data.trips.findIndex((trip) => trip.id === tripId);
+  if (index >= 0) data.trips.splice(index, 1);
 };

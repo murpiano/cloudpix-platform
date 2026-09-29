@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { World } from '@/app/boot';
 import { addAlbum, addPhotos, deleteAlbum, freshId, updateAlbum } from '@/data/edits';
-import { shrinkAll } from '@/data/image';
+
 import type { PickedPlace } from '@/data/places';
 import type { PhotoRef } from '@/data/types';
-import { editArchive } from '@/state/owner';
+import { editArchive, repository } from '@/state/owner';
+import { attachPhotos } from './attach';
 import { ConfirmButton } from './ConfirmButton';
 import { DropZone } from './DropZone';
 import { dateInput, parseDate } from './fields';
@@ -71,30 +72,51 @@ export function AlbumForm({
       place,
       tripId: trip || null,
     };
-    let lost: string[] = [];
+
+    if (album) {
+      try {
+        await editArchive((data) => updateAlbum(data, album.id, fields));
+      } catch {
+        setBusy(false);
+        setTrouble('The album could not be saved. Your browser may be out of room.');
+        return;
+      }
+      onClose();
+      return;
+    }
+
+    // the photos are made smaller and kept first: the album is added only once they are all in,
+    // so a file that cannot be read, or a browser out of room, leaves nothing half made
+    const repo = repository();
+    let refs: PhotoRef[] = [];
+    if (repo && files.length > 0) {
+      let skipped: string[] = [];
+      try {
+        ({ refs, skipped } = await attachPhotos(files, repo));
+      } catch {
+        setBusy(false);
+        setTrouble('The photos could not be kept. Your browser may be out of room.');
+        return;
+      }
+      if (skipped.length > 0) {
+        setFiles(files.filter((file) => !skipped.includes(file.name)));
+        setBusy(false);
+        setTrouble(
+          `${skipped.join(', ')} could not be read as an image. Nothing was saved; press "Create album" again for the rest.`,
+        );
+        return;
+      }
+    }
+
     try {
-      await editArchive(async (data, repo) => {
-        if (album) {
-          updateAlbum(data, album.id, fields);
-          return;
-        }
+      await editArchive((data) => {
         const made = addAlbum(data, freshId('a'), fields);
-        // the files are made smaller and kept before the album is saved
-        const { ready, skipped } = await shrinkAll(files);
-        lost = skipped;
-        const refs: PhotoRef[] = [];
-        for (const one of ready) refs.push(await repo.addPhoto(one.blob, one.name));
         addPhotos(data, made.id, refs);
       });
     } catch {
-      // storage said no: the sheet stays open with what was typed still in it
+      await repo?.dropPhotos(refs);
       setBusy(false);
-      setTrouble('The album could not be saved. Your browser may be out of room for photos.');
-      return;
-    }
-    if (lost.length > 0) {
-      setBusy(false);
-      setTrouble(`The album is there, but ${lost.join(', ')} could not be read as an image.`);
+      setTrouble('The album could not be saved. Your browser may be out of room.');
       return;
     }
     onClose();
@@ -169,7 +191,9 @@ export function AlbumForm({
             onConfirm={() => {
               void editArchive(async (data, repo) => {
                 await repo.dropPhotos(deleteAlbum(data, album.id));
-              }).then(onClose);
+              }).then(onClose, () =>
+                setTrouble('The album could not be deleted. Try again in a moment.'),
+              );
             }}
           />
         )}

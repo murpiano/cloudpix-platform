@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { World } from '@/app/boot';
 import { createEngine } from '@/engine/engine';
+import type { GlobeEngine } from '@/engine/engine';
+import { ownerStore } from '@/state/owner';
+import { useStore } from '@/state/store';
 import type { Director } from '@/tour/director';
 import { PlaceLabel } from './PlaceLabel';
 import './globe.scss';
@@ -11,12 +14,19 @@ export function GlobeStage({ world, director }: { world: World; director: Direct
   const sky = useRef<HTMLCanvasElement>(null);
   const globe = useRef<HTMLCanvasElement>(null);
   const label = useRef<HTMLDivElement>(null);
+  const engine = useRef<GlobeEngine | null>(null);
+  const rev = useStore(ownerStore, (state) => state.rev);
+
+  // an edit can add a city, move one or take one away: the lights follow
+  useEffect(() => {
+    if (rev > 0) engine.current?.refresh();
+  }, [rev]);
 
   useEffect(() => {
     if (!stars.current || !sky.current || !globe.current || !label.current) {
       return;
     }
-    const engine = createEngine({
+    const live = createEngine({
       stars: stars.current,
       sky: sky.current,
       globe: globe.current,
@@ -24,7 +34,11 @@ export function GlobeStage({ world, director }: { world: World; director: Direct
       ...world,
       director,
     });
-    return () => engine.destroy();
+    engine.current = live;
+    return () => {
+      engine.current = null;
+      live.destroy();
+    };
   }, [world, director]);
 
   return (

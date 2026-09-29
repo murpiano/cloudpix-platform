@@ -25,6 +25,10 @@ export const editArchive = async (
   const { archive, repo } = source;
   await fn(archive.data, repo);
   relinkInto(archive, archive.data);
-  repo.save(archive.data);
-  ownerStore.set({ rev: ownerStore.get().rev + 1 });
+  try {
+    repo.save(archive.data);
+  } finally {
+    // the change is in the graph either way, so the screen must show it before the error travels
+    ownerStore.set({ rev: ownerStore.get().rev + 1 });
+  }
 };

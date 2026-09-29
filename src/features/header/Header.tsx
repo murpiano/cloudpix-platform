@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { World } from '@/app/boot';
 import { plural } from '@/archive/pages';
 import { journeyStats } from '@/data/stats';
@@ -141,11 +141,10 @@ function NavMenu({ world }: { world: World | null }) {
 function Stats({ world }: { world: World }) {
   const range = useStore(appStore, (s) => s.range);
   const focus = useStore(appStore, (s) => s.focus);
-  const times = useMemo(() => world.archive.albums.map(albumTime), [world]);
-  const stats = useMemo(
-    () => journeyStats(world.archive, times, range, focus),
-    [world, times, range, focus],
-  );
+  // the archive keeps its identity through an edit, so the stats are counted on every render
+  useStore(ownerStore, (state) => state.rev);
+  const times = world.archive.albums.map(albumTime);
+  const stats = journeyStats(world.archive, times, range, focus);
   const note = stats.scope === 'range' ? ' in range' : stats.scope === 'so far' ? ' so far' : '';
   return (
     <div className="header__stats">

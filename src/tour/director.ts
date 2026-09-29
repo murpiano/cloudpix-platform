@@ -92,8 +92,9 @@ interface Leg {
  */
 export const createDirector = ({ archive, home, store, pace }: DirectorOptions) => {
   const albums = archive.albums;
-  const times = albums.map(albumTime);
-  const [firstYear] = span(times);
+  // `relinkInto` refills these lists in place, so an edit changes what is in them
+  let times = albums.map(albumTime);
+  let [firstYear] = span(times);
   const homeAt: LonLat = [home.lon, home.lat];
   const at = (city: City): LonLat => [city.lon, city.lat];
   const timeOf = (index: number) => times[index] ?? 0;
@@ -372,6 +373,12 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     },
 
     deselect,
+
+    /** After an edit: the albums are new, so their times and the first year are worked out again. */
+    refresh() {
+      times = albums.map(albumTime);
+      [firstYear] = span(times);
+    },
 
     /** Esc on the main screen: let go of the place, then of the range. */
     escape() {

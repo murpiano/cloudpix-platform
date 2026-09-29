@@ -42,12 +42,32 @@ const build = (data: ArchiveData): Archive => {
 
 export const linkArchive = (data: ArchiveData): Archive => build(data);
 
+const refill = <T>(kept: T[], next: T[]) => {
+  kept.splice(0, kept.length, ...next);
+};
+
+const remap = <K, V>(kept: ReadonlyMap<K, V>, next: ReadonlyMap<K, V>) => {
+  const live = kept as Map<K, V>;
+  live.clear();
+  for (const [key, value] of next) live.set(key, value);
+};
+
 /**
- * Rebuilds the graph inside the archive that is already there. The director and the engine hold
- * this object and read it every frame, so an edit must not hand them a new one.
+ * Rebuilds the graph inside the archive that is already there, down to the same arrays and maps.
+ * The director and the engine take hold of `albums` and `cities` when they are made and read
+ * them every frame, so an edit must hand them neither a new archive nor a new list.
  */
-export const relinkInto = (archive: Archive, data: ArchiveData): Archive =>
-  Object.assign(archive, build(data));
+export const relinkInto = (archive: Archive, data: ArchiveData): Archive => {
+  const next = build(data);
+  archive.data = data;
+  archive.trips = data.trips;
+  refill(archive.countries, next.countries);
+  refill(archive.cities, next.cities);
+  refill(archive.albums, next.albums);
+  remap(archive.cityByKey, next.cityByKey);
+  remap(archive.albumById, next.albumById);
+  return archive;
+};
 
 export const photoTotal = (city: City): number =>
   city.albums.reduce((sum, album) => sum + album.photoCount, 0);

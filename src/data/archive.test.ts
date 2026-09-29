@@ -81,8 +81,15 @@ describe('relinkInto', () => {
     const archive = linkArchive(own);
     const before = archive.albums.length;
     own.countries[0]?.cities[0]?.albums.push(album('new', 2030, 1, 0));
+    const albums = archive.albums;
+    const cities = archive.cities;
+    const byId = archive.albumById;
     const same = relinkInto(archive, own);
     expect(same).toBe(archive);
+    // the director and the engine captured these when they were made: they must stay the same
+    expect(archive.albums).toBe(albums);
+    expect(archive.cities).toBe(cities);
+    expect(archive.albumById).toBe(byId);
     expect(archive.albums).toHaveLength(before + 1);
     expect(archive.albumById.get('new')?.title).toBe('new');
   });

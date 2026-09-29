@@ -284,9 +284,17 @@
   }
 
   &__pic {
+    position: relative;
+  }
+
+  &__open {
+    display: block;
+    width: 100%;
     padding: 0;
     border: 0;
     background: none;
+    color: inherit;
+    font: inherit;
     text-align: left;
     cursor: pointer;
   }

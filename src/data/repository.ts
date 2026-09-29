@@ -35,10 +35,14 @@ const cleanPhoto = (raw: unknown): PhotoRef | null => {
   return null;
 };
 
+const inRange = (value: unknown, lo: number, hi: number): value is number =>
+  num(value) && value >= lo && value <= hi;
+
 const cleanAlbum = (raw: unknown): AlbumData | null => {
   if (!isObject(raw)) return null;
-  if (!str(raw.id) || !str(raw.title) || !str(raw.time)) return null;
-  if (!num(raw.year) || !num(raw.month) || !num(raw.day)) return null;
+  if (!str(raw.id) || !str(raw.title) || !/^\d{1,2}:\d{2}$/.test(String(raw.time))) return null;
+  // a month or a day outside the calendar renders as "undefined" and breaks every sort by date
+  if (!num(raw.year) || !inRange(raw.month, 1, 12) || !inRange(raw.day, 1, 31)) return null;
   const photos = Array.isArray(raw.photos)
     ? raw.photos.map(cleanPhoto).filter((photo): photo is PhotoRef => photo !== null)
     : [];
@@ -49,7 +53,7 @@ const cleanAlbum = (raw: unknown): AlbumData | null => {
     year: Math.round(raw.year),
     month: Math.round(raw.month),
     day: Math.round(raw.day),
-    time: raw.time,
+    time: String(raw.time),
     photoCount: Math.max(photos.length, claimed),
     photos,
   };
@@ -83,18 +87,47 @@ const cleanTrip = (raw: unknown): Trip | null => {
   const start = cleanEnd(raw.start);
   const end = cleanEnd(raw.end);
   if (!start || !end) return null;
-  const albumIds = Array.isArray(raw.albumIds) ? raw.albumIds.filter(str) : [];
+  const albumIds = Array.isArray(raw.albumIds) ? [...new Set(raw.albumIds.filter(str))] : [];
   return { id: raw.id, name: raw.name, start, end, albumIds };
+};
+
+/** The first of each, by whatever tells them apart: a repeated id or key confuses every lookup. */
+const once = <T>(items: T[], keyOf: (item: T) => string): T[] => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = keyOf(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 /** Kept JSON, maybe from an older build or an editing hand, made safe to use. */
 export const cleanArchive = (raw: unknown): ArchiveData | null => {
   if (!isObject(raw) || !Array.isArray(raw.countries)) return null;
-  const countries = raw.countries
-    .map(cleanCountry)
-    .filter((country): country is CountryData => country !== null);
+  const countries = once(
+    raw.countries.map(cleanCountry).filter((country): country is CountryData => country !== null),
+    (country) => country.id,
+  );
+  const cityKeys = new Set<string>();
+  const albumIds = new Set<string>();
+  for (const country of countries) {
+    country.cities = country.cities.filter((city) => {
+      if (cityKeys.has(city.key)) return false;
+      cityKeys.add(city.key);
+      city.albums = city.albums.filter((album) => {
+        if (albumIds.has(album.id)) return false;
+        albumIds.add(album.id);
+        return true;
+      });
+      return true;
+    });
+  }
   const trips = Array.isArray(raw.trips)
-    ? raw.trips.map(cleanTrip).filter((trip): trip is Trip => trip !== null)
+    ? once(
+        raw.trips.map(cleanTrip).filter((trip): trip is Trip => trip !== null),
+        (trip) => trip.id,
+      )
     : [];
   return { countries, trips };
 };

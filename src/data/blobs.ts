@@ -12,14 +12,24 @@ export const rememberOwnUrl = (id: Id, url: string): void => {
 
 export const ownUrl = (id: Id): string | null => urls.get(id) ?? null;
 
-export const forgetOwnUrls = (): void => {
-  for (const url of urls.values()) {
-    try {
-      URL.revokeObjectURL(url);
-    } catch {
-      // nothing to revoke where there is no browser
-    }
+const revoke = (url: string) => {
+  try {
+    URL.revokeObjectURL(url);
+  } catch {
+    // nothing to revoke where there is no browser
   }
+};
+
+/** One photo is gone: its url goes with it, so the blob does not sit in memory for the session. */
+export const forgetOwnUrl = (id: Id): void => {
+  const url = urls.get(id);
+  if (url === undefined) return;
+  revoke(url);
+  urls.delete(id);
+};
+
+export const forgetOwnUrls = (): void => {
+  for (const url of urls.values()) revoke(url);
   urls.clear();
 };
 

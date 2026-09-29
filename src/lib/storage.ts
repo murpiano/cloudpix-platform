@@ -10,10 +10,12 @@ export const readJSON = <T>(key: string, fallback: T): T => {
   }
 };
 
-export const writeJSON = (key: string, value: unknown): void => {
+/** True when the value was kept. False when storage is blocked or out of room. */
+export const writeJSON = (key: string, value: unknown): boolean => {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value));
+    return true;
   } catch {
-    // Storage unavailable: the value simply is not remembered.
+    return false;
   }
 };

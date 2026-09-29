@@ -54,6 +54,8 @@ export interface EngineOptions {
 }
 
 export interface GlobeEngine {
+  /** After an edit: the lights follow the cities the archive holds now. */
+  refresh(): void;
   destroy(): void;
 }
 
@@ -133,7 +135,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   let lastFrame: number | null = null;
   let frameId = 0;
 
-  const places: PlaceRuntime[] = archive.cities.map((city) => ({
+  const runtimeOf = (city: City): PlaceRuntime => ({
     city,
     v: vec(city.lon, city.lat),
     photos: photoTotal(city),
@@ -142,7 +144,9 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     y: 0,
     r: HIT_MIN,
     visible: false,
-  }));
+  });
+
+  const places: PlaceRuntime[] = archive.cities.map(runtimeOf);
   const homeV = vec(home.lon, home.lat);
   let homeLit = 0;
   const smoke = createSmoke();
@@ -438,6 +442,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     Object.assign(window, {
       __globe: {
         state: () => ({ z, zTarget, t, flat: unroll.flat, rot, spin, worldNow }),
+        places: () => places.map((place) => place.city.key),
         app: () => appStore.get(),
         setZoom: (value: number) => {
           zTarget = clamp(value, Z_MIN, Z_MAX);
@@ -447,6 +452,20 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   }
 
   return {
+    refresh() {
+      // a city that is still there keeps how it looks, so its light does not blink on an edit
+      const kept = new Map(places.map((place) => [place.city.key, place]));
+      const next = archive.cities.map((city) => {
+        const place = kept.get(city.key);
+        if (!place) return runtimeOf(city);
+        place.city = city;
+        place.v = vec(city.lon, city.lat);
+        place.photos = photoTotal(city);
+        return place;
+      });
+      places.splice(0, places.length, ...next);
+    },
+
     destroy() {
       cancelAnimationFrame(frameId);
       removeEventListener('resize', resize);

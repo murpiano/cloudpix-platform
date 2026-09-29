@@ -5,6 +5,7 @@ import { goArchive } from '@/features/archive/links';
 import type { Archive } from '@/data/archive';
 import { monthYear } from '@/lib/dates';
 import { appStore } from '@/state/app-state';
+import { ownerStore } from '@/state/owner';
 import { useStore } from '@/state/store';
 import {
   albumTime,
@@ -33,8 +34,10 @@ export function Timeline({ archive }: { archive: Archive }) {
   const progress = useStore(appStore, (s) => s.progress);
   const playing = useStore(appStore, (s) => s.playing);
 
-  const times = useMemo(() => archive.albums.map(albumTime), [archive]);
-  const bounds = useMemo(() => span(times), [times]);
+  // the archive keeps its identity through an edit, so these are worked out on every render
+  useStore(ownerStore, (state) => state.rev);
+  const times = archive.albums.map(albumTime);
+  const bounds = span(times);
   const [y0, y1] = bounds;
   const years = useMemo(() => Array.from({ length: y1 - y0 }, (_, i) => y0 + i), [y0, y1]);
   const pos = (t: number) => ((t - y0) / (y1 - y0)) * 100;

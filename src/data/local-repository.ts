@@ -1,5 +1,12 @@
 import { readJSON, writeJSON } from '@/lib/storage';
-import { deletePhoto, dropDatabase, loadOwnUrls, putPhoto, rememberOwnUrl } from './blobs';
+import {
+  deletePhoto,
+  dropDatabase,
+  forgetOwnUrl,
+  loadOwnUrls,
+  putPhoto,
+  rememberOwnUrl,
+} from './blobs';
 import { buildDemo } from './demo';
 import { freshId } from './edits';
 import { cleanArchive } from './repository';
@@ -18,7 +25,8 @@ export const localRepository = (credits: Credit[]): Repository => ({
     return data;
   },
   save(data) {
-    writeJSON(KEY, data);
+    // the caller tells the owner: an edit that was not kept must not look as if it was
+    if (!writeJSON(KEY, data)) throw new Error('the archive could not be kept');
   },
   async addPhoto(blob, name) {
     const id = freshId('p');
@@ -29,6 +37,7 @@ export const localRepository = (credits: Credit[]): Repository => ({
   async dropPhotos(refs: PhotoRef[]) {
     for (const ref of refs) {
       if (ref.kind !== 'own') continue;
+      forgetOwnUrl(ref.id);
       try {
         await deletePhoto(ref.id);
       } catch {

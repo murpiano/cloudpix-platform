@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { geoDistance, geoRotation } from 'd3-geo';
 import { describe, expect, it } from 'vitest';
-import { linkArchive } from '@/data/archive';
+import { linkArchive, relinkInto } from '@/data/archive';
+import { addAlbum } from '@/data/edits';
 import { buildDemo, DEMO_HOME } from '@/data/demo';
 import type { Credit } from '@/data/types';
 import type { Rotation } from '@/geo/camera';
@@ -14,7 +15,8 @@ import { createDirector, DWELL_MIN_MS, placeFacts } from './director';
 import { APPEAR_MS, VANISH_MS } from './flight';
 
 const file = fileURLToPath(new URL('../../public/demo/photos.json', import.meta.url));
-const archive = linkArchive(buildDemo(JSON.parse(readFileSync(file, 'utf8')) as Credit[]));
+const credits = JSON.parse(readFileSync(file, 'utf8')) as Credit[];
+const archive = linkArchive(buildDemo(credits));
 const FLIGHT_MS = 1000;
 const LEG_MS = APPEAR_MS + FLIGHT_MS + VANISH_MS + 100;
 const indexOf = (title: string) => archive.albums.findIndex((a) => a.title === title);
@@ -293,5 +295,35 @@ describe('tours', () => {
     expect(state().focus).toBe(index);
     expect(state().playing).toBe(false);
     expect(state().flying).toBe(false);
+  });
+});
+
+describe('after the owner has changed the archive', () => {
+  const PORTO = { name: 'Porto', country: 'Portugal', countryId: '620', lat: 41.15, lon: -8.61 };
+
+  it('flies to an album that was added after it was made', () => {
+    const own = linkArchive(buildDemo(credits));
+    const store = createStore<AppState>({ ...INITIAL_STATE });
+    const director = createDirector({
+      archive: own,
+      home: DEMO_HOME,
+      store,
+      pace: () => ({ photoMs: 1000, flightMs: FLIGHT_MS }),
+    });
+    const made = addAlbum(own.data, 'new-one', {
+      title: 'Later',
+      year: 2030,
+      month: 6,
+      day: 1,
+      time: '10:00',
+      place: PORTO,
+      tripId: null,
+    });
+    relinkInto(own, own.data);
+    director.refresh();
+
+    expect(director.showAlbumOnMap(made.id)).toBe(true);
+    expect(store.get().focus).toBe(own.albums.findIndex((album) => album.id === made.id));
+    expect(director.clickYear(2030)).toBe('ok');
   });
 });

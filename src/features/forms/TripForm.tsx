@@ -2,10 +2,11 @@ import { useState } from 'react';
 import type { World } from '@/app/boot';
 import { addTrip, deleteTrip, freshId, updateTrip } from '@/data/edits';
 import { MONTHS } from '@/lib/dates';
-import { editArchive } from '@/state/owner';
+
 import { ConfirmButton } from './ConfirmButton';
 import { endpointOf, endpointOptions, endpointValue } from './endpoints';
 import { Acts, Sheet } from './Sheet';
+import { useEdit } from './useEdit';
 
 /** New or edit: a name, where it starts and ends, and the albums that belong to it. */
 export function TripForm({
@@ -27,6 +28,7 @@ export function TripForm({
   const [end, setEnd] = useState(endpointValue(trip?.end ?? { home: true }));
   const [picked, setPicked] = useState<string[]>(trip ? [...trip.albumIds] : albumIds);
   const newest = [...archive.albums].reverse();
+  const { trouble, run } = useEdit(onClose);
 
   const toggle = (albumId: string) =>
     setPicked(
@@ -40,10 +42,10 @@ export function TripForm({
       end: endpointOf(end),
       albumIds: picked,
     };
-    void editArchive((data) => {
+    run((data) => {
       if (trip) updateTrip(data, trip.id, fields);
       else addTrip(data, freshId('t'), fields);
-    }).then(onClose);
+    });
   };
 
   return (
@@ -109,7 +111,7 @@ export function TripForm({
             label="Delete trip"
             ask="Delete this trip? Its albums stay."
             onConfirm={() => {
-              void editArchive((data) => deleteTrip(data, trip.id)).then(onClose);
+              run((data) => deleteTrip(data, trip.id));
             }}
           />
         )}
@@ -125,6 +127,7 @@ export function TripForm({
           {trip ? 'Save' : 'Create trip'}
         </button>
       </Acts>
+      {trouble && <p className="sheet__note">{trouble}</p>}
     </Sheet>
   );
 }
