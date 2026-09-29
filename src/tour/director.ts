@@ -10,7 +10,7 @@ import type { PlaceFacts } from '@/render/places';
 import type { AppState } from '@/state/app-state';
 import type { Store } from '@/state/store';
 import { albumTime, isReached, pickedRange, span, within, yearRange } from '@/timeline/range';
-import { createFlight, planeAlpha, riseZoom, stepFlight } from './flight';
+import { beginEscape, createFlight, planeAlpha, planeLift, riseZoom, stepFlight } from './flight';
 import type { Flight } from './flight';
 import { cityAlbums, nextInRange, nextStep, scopedAlbums, tripTour, yearTour } from './tour';
 
@@ -46,6 +46,8 @@ export interface PlaneView {
   behind: LonLat;
   ahead: LonLat;
   alpha: number;
+  /** 0 in flight; 0..1 while it climbs away into space. */
+  lift: number;
 }
 
 /** Everything the engine draws from the journey. */
@@ -83,6 +85,8 @@ interface Leg {
   city: City | null;
   end: Endpoint | null;
   fromHome: boolean;
+  /** Sent away by a range its place is not in: it climbs into space instead of landing. */
+  escaping: boolean;
 }
 
 /**
@@ -147,7 +151,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const fromHome = leg === null && from !== null && geoDistance(from, homeAt) < 1e-4;
     origin = null;
     const flight = createFlight({ from, to: at(album.city), rot });
-    leg = { flight, city: album.city, end: null, fromHome };
+    leg = { flight, city: album.city, end: null, fromHome, escaping: false };
     set({
       focus: index,
       atHome: false,
@@ -175,7 +179,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     }
     const place = endpointPlace(end, archive, home);
     const flight = createFlight({ from: at(last.city), to: [place.lon, place.lat], rot });
-    leg = { flight, city: null, end, fromHome: false };
+    leg = { flight, city: null, end, fromHome: false, escaping: false };
     set({
       flying: true,
       flightKm: flight.km > 0 ? flight.km : null,
@@ -220,6 +224,21 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     if (get().playing) dwell = dwellMs();
   };
 
+  /** The trail is gone this soon after the plane is sent away. */
+  const TRAIL_GONE_MS = 350;
+
+  /**
+   * A range was chosen while a plane is in the air. If the place it is heading for is inside the
+   * range it flies on; if not, its trail goes and it climbs away into space and dissolves.
+   */
+  const settleFlight = () => {
+    if (!leg || leg.escaping || !leg.flight.path) return;
+    const { range, focus } = get();
+    if (!range || focus < 0 || within(timeOf(focus), range)) return;
+    leg.escaping = true;
+    beginEscape(leg.flight);
+  };
+
   const deselect = () => {
     leg = null;
     lastLeg = null;
@@ -241,7 +260,14 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const album = albums[index];
     if (!album) return;
     leg = null;
-    set({ focus: index, atHome: false, endCard: null, progress: true, flying: false, flightKm: null });
+    set({
+      focus: index,
+      atHome: false,
+      endCard: null,
+      progress: true,
+      flying: false,
+      flightKm: null,
+    });
     pulseAt.set(album.city.key, now);
   };
 
@@ -278,7 +304,8 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     const flight = leg?.flight;
     let legView: LegView | null = null;
     if (flight) {
-      legView = flight.path ? { path: flight.path, upto: flight.e, alpha: 0.9 } : null;
+      const trail = leg?.escaping ? clamp(1 - flight.phaseMs / TRAIL_GONE_MS, 0, 1) : 1;
+      legView = flight.path ? { path: flight.path, upto: flight.e, alpha: 0.9 * trail } : null;
     } else if (lastLeg) {
       const alpha = clamp(1 - (now - lastLeg.end) / LEG_FADE_MS, 0.25, 0.9);
       legView = { path: lastLeg.path, upto: 1, alpha };
@@ -290,6 +317,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
             behind: flight.path(Math.max(0, flight.e - 0.003)),
             ahead: flight.path(Math.min(1, flight.e + 0.003)),
             alpha: planeAlpha(flight),
+            lift: planeLift(flight),
           }
         : null;
 
@@ -328,7 +356,11 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
           rot = turnTo;
         }
         zoom = riseZoom(z, flight);
-        if (flight.phase === 'done') arrive();
+        if (flight.phase === 'done') {
+          // a plane that was sent away leaves nothing behind: no landing, no faded trace
+          if (leg.escaping) deselect();
+          else arrive();
+        }
       }
       if (dwell > 0) {
         dwell -= dt;
@@ -457,6 +489,7 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
         return 'empty';
       }
       set({ range: next, picking: null, progress: false });
+      settleFlight();
       return 'ok';
     },
 
@@ -466,11 +499,16 @@ export const createDirector = ({ archive, home, store, pace }: DirectorOptions) 
     },
 
     /** A year on the timeline: picks it; the picked year again asks for the archive. */
-    clickYear(year: number): 'ok' | 'empty' | 'open' {
+    /** A year: picked on the first click; on the second it asks for the archive, unless `open` is off. */
+    clickYear(year: number, open = true): 'ok' | 'empty' | 'open' {
       if (!albums.some((album) => album.year === year)) return 'empty';
-      if (get().range?.year === year) return 'open';
+      if (get().range?.year === year) {
+        if (open) return 'open';
+        return 'ok';
+      }
       leaveTour();
       set({ range: yearRange(year), picking: null, progress: false });
+      settleFlight();
       return 'ok';
     },
 

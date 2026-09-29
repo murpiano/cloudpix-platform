@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe('demoUrl', () => {
-  it('builds on the base path, so it works under /cloudpix-platform/ too', () => {
+  it('builds on the base path, so it works under /my-world/ too', () => {
     expect(demoUrl('photos.json')).toBe(`${import.meta.env.BASE_URL}demo/photos.json`);
   });
 });

@@ -10,9 +10,13 @@ import { clamp } from '@/lib/math';
 export const APPEAR_MS = 700;
 /** It stops and fades out before the place lights up. */
 export const VANISH_MS = 380;
+/** A plane sent away climbs into space and dissolves over this time. */
+export const ESCAPE_MS = 1600;
+/** It keeps its shape for this share of the climb, then dissolves. */
+const ESCAPE_SOLID = 0.35;
 export const EARTH_KM = 6371;
 
-export type FlightPhase = 'appear' | 'cruise' | 'vanish' | 'done';
+export type FlightPhase = 'appear' | 'cruise' | 'vanish' | 'escape' | 'done';
 
 export interface Flight {
   to: LonLat;
@@ -67,6 +71,17 @@ export const createFlight = ({
   };
 };
 
+/**
+ * The owner chose a range the plane's place is not in: it stops where it is and climbs away. There
+ * is no plane to send away in a camera-only turn.
+ */
+export const beginEscape = (flight: Flight): void => {
+  if (!flight.path || flight.phase === 'escape' || flight.phase === 'done') return;
+  flight.phase = 'escape';
+  flight.phaseMs = 0;
+  flight.follow = false;
+};
+
 export const stepFlight = (flight: Flight, dt: number, cruiseMs: number): void => {
   if (!flight.path) {
     flight.e = Math.min(1, flight.e + dt / flight.cameraMs);
@@ -93,6 +108,10 @@ export const stepFlight = (flight: Flight, dt: number, cruiseMs: number): void =
       flight.phaseMs += dt;
       if (flight.phaseMs >= VANISH_MS) flight.phase = 'done';
       break;
+    case 'escape':
+      flight.phaseMs += dt;
+      if (flight.phaseMs >= ESCAPE_MS) flight.phase = 'done';
+      break;
     case 'done':
       break;
   }
@@ -102,9 +121,16 @@ export const stepFlight = (flight: Flight, dt: number, cruiseMs: number): void =
 export const planeAlpha = ({ phase, phaseMs }: Flight): number => {
   if (phase === 'appear') return smooth(clamp(phaseMs / APPEAR_MS, 0, 1));
   if (phase === 'vanish') return 1 - smooth(clamp(phaseMs / VANISH_MS, 0, 1));
+  if (phase === 'escape') {
+    return 1 - smooth(clamp((phaseMs / ESCAPE_MS - ESCAPE_SOLID) / (1 - ESCAPE_SOLID), 0, 1));
+  }
   if (phase === 'done') return 0;
   return 1;
 };
+
+/** 0 in flight; while it is sent away 0..1, slow at first and then faster and faster. */
+export const planeLift = ({ phase, phaseMs }: Flight): number =>
+  phase === 'escape' ? clamp(phaseMs / ESCAPE_MS, 0, 1) ** 2 : phase === 'done' ? 1 : 0;
 
 /** The camera rises mid-flight in proportion to the distance, and settles on arrival. */
 export const riseZoom = (z: number, { c, rise }: Flight): number =>

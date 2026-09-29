@@ -1,4 +1,4 @@
-const PREFIX = 'cloudpix:';
+const PREFIX = 'my-world:';
 
 /** localStorage can be missing or throw (private mode, blocked site data) — never let it break the page. */
 export const readJSON = <T>(key: string, fallback: T): T => {

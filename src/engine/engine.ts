@@ -2,7 +2,7 @@ import { geoRotation } from 'd3-geo';
 import { photoTotal } from '@/data/archive';
 import type { Archive } from '@/data/archive';
 import type { City, Place } from '@/data/types';
-import { turn, wrapLon } from '@/geo/camera';
+import { turn, twist, wrapLon } from '@/geo/camera';
 import type { Rotation } from '@/geo/camera';
 import {
   clipFor,
@@ -119,6 +119,8 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   // and the spin about the Earth's own axis
   let vx = 0;
   let vy = 0;
+  // a twist of two fingers glides out too: degrees per 60 Hz frame about the view axis
+  let vr = 0;
   let spin = CRUISE;
   let spinning = true;
   let spinDir: 1 | -1 = 1;
@@ -159,6 +161,8 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   let samples: DragSample[] = [];
   let dragX = 0;
   let dragY = 0;
+  let twistSamples: DragSample[] = [];
+  let twistSum = 0;
   let mouse: [number, number] | null = null;
   let hovered: PlaceRuntime | null = null;
 
@@ -293,7 +297,13 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
       const q0 = projection(view.plane.behind);
       const q1 = projection(view.plane.ahead);
       if (p && q0 && q1) {
-        painter.plane(p[0], p[1], Math.atan2(q1[1] - q0[1], q1[0] - q0[0]), view.plane.alpha);
+        painter.plane(
+          p[0],
+          p[1],
+          Math.atan2(q1[1] - q0[1], q1[0] - q0[0]),
+          view.plane.alpha,
+          view.plane.lift,
+        );
       }
     }
 
@@ -309,7 +319,7 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     const drive = director.step(dt, rot, z);
     if (drive.rot) {
       rot = drive.rot;
-      vx = vy = 0;
+      vx = vy = vr = 0;
     }
     if (drive.steering) spin = 0;
     const focused = director.focused;
@@ -323,6 +333,11 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
         vx *= keep;
         vy *= keep;
         if (Math.hypot(vx, vy) < 0.003) vx = vy = 0;
+      }
+      if (vr) {
+        rot = twist(rot, vr * f, t);
+        vr *= THROW_DECAY ** f;
+        if (Math.abs(vr) < 0.003) vr = 0;
       }
       // the Earth keeps turning while it is a ball; the flat map moves only when dragged
       spin = ease(spin, spinning && !unroll.flat ? CRUISE * spinDir : 0, f, 0.985);
@@ -376,8 +391,13 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     samples = [];
     dragX = 0;
     dragY = 0;
+    vr = 0;
     updateCursor();
-    if (kind === 'pinch') pinchZ = zTarget;
+    if (kind === 'pinch') {
+      pinchZ = zTarget;
+      twistSamples = [];
+      twistSum = 0;
+    }
   };
 
   const onPointerMove = (event: PointerEvent) => {
@@ -393,6 +413,15 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
     }
     if (next.kind === 'pinch') {
       zTarget = clamp(pinchZ * next.scale, Z_MIN, Z_MAX);
+      if (next.twist !== 0) {
+        // two fingers turning the globe: it follows them and stops spinning by itself
+        rot = twist(rot, next.twist, t);
+        vx = vy = vr = spin = 0;
+        spinning = false;
+        director.letGo();
+        twistSum += next.twist;
+        pushSample(twistSamples, { at: performance.now(), x: twistSum, y: 0 });
+      }
       return;
     }
     if (next.kind !== 'drag') return;
@@ -413,7 +442,13 @@ export const createEngine = (options: EngineOptions): GlobeEngine => {
   };
 
   const onPointerUp = (event: PointerEvent) => {
+    const wasPinching = gesture.pinching;
     const done = gesture.up(input(event));
+    // the first finger to lift ends the twist: the globe keeps turning the way it was turned
+    if (wasPinching && !gesture.pinching) {
+      vr = throwVelocity(twistSamples, performance.now())[0];
+      twistSamples = [];
+    }
     if (done) release(done.dragged, event.clientX, event.clientY);
   };
 

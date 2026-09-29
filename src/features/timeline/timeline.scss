@@ -62,6 +62,11 @@
     background: rgb(255 200 107 / 10%);
     font-size: 15px;
     color: var(--lamp);
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
   }
 
   &__scroll {

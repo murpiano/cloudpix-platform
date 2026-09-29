@@ -1,6 +1,6 @@
 import type { ArchiveData, Id, PhotoRef } from './types';
 
-const DB = 'cloudpix';
+const DB = 'my-world';
 const STORE = 'photos';
 
 /** Object urls of the owner's photos, by id. The UI reads them through `photoUrl`. */

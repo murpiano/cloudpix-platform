@@ -86,9 +86,40 @@ describe('createGesture', () => {
     const gesture = createGesture();
     gesture.down(touch(1, 100, 100));
     expect(gesture.down(touch(2, 200, 100))).toBe('pinch');
-    expect(gesture.move(touch(2, 300, 100))).toEqual({ kind: 'pinch', scale: 2 });
+    expect(gesture.move(touch(2, 300, 100))).toEqual({ kind: 'pinch', scale: 2, twist: 0 });
     expect(gesture.up(touch(2, 300, 100))).toBeNull();
     expect(gesture.dragging).toBe(true);
+  });
+
+  it('turns with two fingers by the angle their line has turned since the last event', () => {
+    const gesture = createGesture();
+    gesture.down(touch(1, 100, 100));
+    gesture.down(touch(2, 200, 100));
+    // the second finger swings down (clockwise on the screen, where y grows downwards)
+    const first = gesture.move(touch(2, 200, 200));
+    expect(first.kind === 'pinch' && first.twist).toBeCloseTo(45, 5);
+    // and on from there: only the new part counts
+    const second = gesture.move(touch(2, 100, 200));
+    expect(second.kind === 'pinch' && second.twist).toBeCloseTo(45, 5);
+  });
+
+  it('knows a pinch is under way from the second finger down to the first one up', () => {
+    const gesture = createGesture();
+    expect(gesture.pinching).toBe(false);
+    gesture.down(touch(1, 100, 100));
+    expect(gesture.pinching).toBe(false);
+    gesture.down(touch(2, 200, 100));
+    expect(gesture.pinching).toBe(true);
+    gesture.up(touch(2, 200, 100));
+    expect(gesture.pinching).toBe(false);
+  });
+
+  it('takes the short way round when the line crosses the horizontal', () => {
+    const gesture = createGesture();
+    gesture.down(touch(1, 100, 100));
+    gesture.down(touch(2, 0, 101));
+    const across = gesture.move(touch(2, 0, 99));
+    expect(across.kind === 'pinch' && Math.abs(across.twist)).toBeLessThan(5);
   });
 
   it('keeps dragging with the finger that stays, without a jump', () => {

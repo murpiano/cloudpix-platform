@@ -6,10 +6,10 @@
   "description": "A personal travel archive on a night globe: places, albums, and a plane that flies the trips in order.",
   "author": "Bogdan Trotsenko <https://github.com/murpiano>",
   "license": "MIT",
-  "homepage": "https://murpiano.github.io/cloudpix-platform/",
+  "homepage": "https://murpiano.github.io/my-world/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/murpiano/cloudpix-platform.git"
+    "url": "git+https://github.com/murpiano/my-world.git"
   },
   "scripts": {
     "dev": "vite",

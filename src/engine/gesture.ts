@@ -15,8 +15,11 @@ export interface PointerInput {
 
 export type GestureMove =
   | { kind: 'idle' }
-  /** Two fingers: the zoom factor since the second finger went down. */
-  | { kind: 'pinch'; scale: number }
+  /**
+   * Two fingers: the zoom factor since the second finger went down, and the degrees their line
+   * turned since the last event (clockwise on the screen for a positive one).
+   */
+  | { kind: 'pinch'; scale: number; twist: number }
   /** One pointer: px moved since its last event; `started` on the move that crosses the threshold. */
   | { kind: 'drag'; started: boolean; dx: number; dy: number }
   /** The mouse moved with no button held: its release never arrived (a context menu ate it). */
@@ -36,13 +39,25 @@ export const createGesture = () => {
   let moved = false;
   let downAt: [number, number] = [0, 0];
   let pinchFrom: number | null = null;
+  let pinchAngle = 0;
 
   const spread = (): number => {
     const [a, b] = [...pointers.values()];
     return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : 0;
   };
 
+  /** The angle of the line from the first finger to the second, in degrees, y down. */
+  const angle = (): number => {
+    const [a, b] = [...pointers.values()];
+    return a && b ? (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI : 0;
+  };
+
   return {
+    /** Whether two fingers are down together: from the second one down to the first one up. */
+    get pinching(): boolean {
+      return pinchFrom !== null;
+    },
+
     /** Whether any pointer is down. */
     get dragging(): boolean {
       return pointers.size > 0;
@@ -59,6 +74,7 @@ export const createGesture = () => {
         // a pinch is never a tap
         moved = true;
         pinchFrom = spread();
+        pinchAngle = angle();
         return 'pinch';
       }
       return 'drag';
@@ -75,7 +91,11 @@ export const createGesture = () => {
       pointers.set(pointer.id, [pointer.x, pointer.y]);
 
       if (pinchFrom !== null && pointers.size === 2) {
-        return { kind: 'pinch', scale: spread() / pinchFrom };
+        const now = angle();
+        // the short way round: the line crossing the horizontal must not read as a near full turn
+        const step = ((((now - pinchAngle) % 360) + 540) % 360) - 180;
+        pinchAngle = now;
+        return { kind: 'pinch', scale: spread() / pinchFrom, twist: step };
       }
 
       let started = false;

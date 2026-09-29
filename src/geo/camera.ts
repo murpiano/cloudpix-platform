@@ -86,6 +86,17 @@ export const turn = ([lam, phi, gam]: Rotation, dx: number, dy: number, t: numbe
 };
 
 /**
+ * A two-finger twist of `angle` degrees, clockwise on the screen for a positive one: the globe
+ * turns about the axis through the middle of the view, so the twist goes wherever the hand goes.
+ * The flat map has no such axis (t = 1), and in between the turn fades out with the ball.
+ */
+export const twist = (rot: Rotation, angle: number, t: number): Rotation => {
+  const ball = 1 - t;
+  if (ball <= 0 || angle === 0) return rot;
+  return euler(qmul(quat(rot), quat([0, 0, -angle * ball])));
+};
+
+/**
  * The camera's share of a flight, for the plane's share `e` (0..1, constant speed). The camera
  * eases in over the first 14 % and out over the last 14 % around the plane's speed: it trails the
  * plane a little on take-off, leads it a little before landing, and lands with it.

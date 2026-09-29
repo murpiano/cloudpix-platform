@@ -1,7 +1,7 @@
-import { geoDistance, geoRotation } from 'd3-geo';
+import { geoDistance, geoOrthographic, geoRotation } from 'd3-geo';
 import { describe, expect, it } from 'vitest';
 import { DEG } from '@/lib/math';
-import { camCurve, euler, quat, RAMP, slerp, turn, wrapLon } from './camera';
+import { camCurve, euler, quat, RAMP, slerp, turn, twist, wrapLon } from './camera';
 import type { Quat, Rotation } from './camera';
 import { dot, vec } from './vector';
 
@@ -112,5 +112,41 @@ describe('camCurve', () => {
     expect((camCurve(h) - camCurve(0)) / h).toBeLessThan(0.01);
     expect((camCurve(1) - camCurve(1 - h)) / h).toBeLessThan(0.01);
     expect((camCurve(0.5 + h) - camCurve(0.5)) / h).toBeCloseTo(1 / (1 - RAMP), 4);
+  });
+});
+
+describe('twist', () => {
+  // where a point of the globe lands on the screen (y grows downwards)
+  const onScreen = (rot: Rotation, lon: number, lat: number): [number, number] => {
+    const at = geoOrthographic().scale(100).translate([0, 0]).rotate(rot).precision(0.1)([lon, lat]);
+    if (!at) throw new Error('behind the globe');
+    return at;
+  };
+
+  it('turns the globe clockwise about the view axis for a positive angle', () => {
+    // the view is centred on (0, 0) as rotation [0, 0, 0]: a point above the centre goes right
+    const before = onScreen([0, 0, 0], 0, 20);
+    const after = onScreen(twist([0, 0, 0], 30, 0), 0, 20);
+    expect(before[0]).toBeCloseTo(0, 5);
+    expect(after[0]).toBeGreaterThan(5);
+    expect(after[1]).toBeGreaterThan(before[1]);
+  });
+
+  it('keeps the point in the middle of the screen where it was', () => {
+    const rot: Rotation = [-20, -35, 10];
+    const middle = onScreen(rot, 20, 35);
+    const after = onScreen(twist(rot, 40, 0), 20, 35);
+    expect(after[0]).toBeCloseTo(middle[0], 4);
+    expect(after[1]).toBeCloseTo(middle[1], 4);
+  });
+
+  it('does nothing on the flat map, where there is no axis to turn about', () => {
+    expect(twist([-20, -35, 0], 40, 1)).toEqual([-20, -35, 0]);
+  });
+
+  it('is undone by turning back', () => {
+    const start: Rotation = [-20, -35, 0];
+    const back = twist(twist(start, 25, 0), -25, 0);
+    back.forEach((angle, i) => expect(angle).toBeCloseTo(start[i] ?? 0, 4));
   });
 });

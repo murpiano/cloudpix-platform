@@ -112,14 +112,14 @@ export function Timeline({ archive }: { archive: Archive }) {
     return () => cancelAnimationFrame(frame);
   }, [holding, director, times, bounds]);
 
+  // the strip opens with the picked place in the middle of the screen
+  const grow = (t: number) => {
+    grownAt.current = (t - y0) / (y1 - y0);
+    setGrown(true);
+  };
+
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
-    if (mobile && !grown) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      grownAt.current = (event.clientX - rect.left) / rect.width;
-      setGrown(true);
-      return;
-    }
     if (zoomed) {
       // a drag on the strip scrolls it, so a range is picked by a tap and its handles
       pick.current = { x: event.clientX, moved: false };
@@ -156,9 +156,10 @@ export function Timeline({ archive }: { archive: Archive }) {
       if (director.endPick(t, false) === 'empty') flash('No albums in that stretch');
       return;
     }
-    if (director.endPick(timeFor(event.clientX), current.moved) === 'empty') {
-      flash('No albums in that stretch');
-    }
+    const t = timeFor(event.clientX);
+    if (director.endPick(t, current.moved) === 'empty') flash('No albums in that stretch');
+    // on a phone the first touch also grows the strip around what it picked
+    if (mobile) grow(t);
   };
 
   const onPointerCancel = () => {
@@ -194,9 +195,12 @@ export function Timeline({ archive }: { archive: Archive }) {
   };
 
   const onYear = (year: number) => {
-    const result = director.clickYear(year);
+    // on a phone the first tap grows the strip and picks the year; it never opens the archive
+    const first = mobile && !grown;
+    const result = director.clickYear(year, !first);
     if (result === 'empty') flash('No albums that year');
     else if (result === 'open') goArchive({ kind: 'year', year });
+    else if (first) grow(year + 0.5);
   };
 
   const live = picking ?? range;
@@ -262,6 +266,8 @@ export function Timeline({ archive }: { archive: Archive }) {
         <button
           type="button"
           className="timeline__play"
+          // while the strip is grown the range is being chosen: Done gives play back
+          disabled={zoomed}
           onClick={() => director.play()}
           aria-label={playing ? 'Pause' : 'Play'}
         >

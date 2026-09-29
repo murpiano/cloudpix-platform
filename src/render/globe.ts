@@ -191,10 +191,12 @@ export const createPainter = (ctx: CanvasRenderingContext2D, projection: GeoProj
   };
 
   /** The plane: a small white arrow with a warm glow. */
-  const plane = (x: number, y: number, angle: number, alpha: number) => {
+  const plane = (x: number, y: number, angle: number, alpha: number, lift = 0) => {
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(x, y);
+    // a plane sent away climbs straight up the screen, out of the world, and grows a little
+    ctx.translate(x, y - lift * 320);
+    ctx.scale(1 + lift * 0.9, 1 + lift * 0.9);
     ctx.rotate(angle);
     ctx.shadowColor = 'rgba(255,220,160,.9)';
     ctx.shadowBlur = 12;

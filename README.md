@@ -6,7 +6,7 @@ A personal travel archive on a night globe. Every place you have been is a light
 the plane flies there, the album opens, and the photos from that day come up one by one.
 React, TypeScript and SCSS on a 2D canvas — no WebGL, no map tiles, no server.
 
-[Live demo](https://murpiano.github.io/cloudpix-platform/) · [How it works](#how-it-works) · [Run locally](#run-locally)
+[Live demo](https://murpiano.github.io/my-world/) · [How it works](#how-it-works) · [Run locally](#run-locally)
 
 ## Two modes
 
@@ -21,13 +21,16 @@ over. Login is local: a name, an email, a password that is never stored, and a h
 
 ## What you can do
 
-Drag the globe and let go to spin it; scroll to move closer. Zoomed out far enough, the sphere
+Drag the globe and let go to spin it; scroll to move closer. On a phone, pinch to zoom and twist
+two fingers to turn the globe the way your hand turns. Zoomed out far enough, the sphere
 unrolls into a flat map and rolls back up when you return. Click a light and the plane flies from
 your home base to that city, the album panel opens on the left and the photos pass by.
 
 The timeline at the bottom is the years of your travels. Click a point to see everything up to
 it, drag to pick a range, click a year to pick that year and click it again to open it in the
-archive. Press play and the whole range plays as a tour, flight by flight.
+archive. Press play and the whole range plays as a tour, flight by flight. On a phone the strip is
+too short to aim at, so the first tap on it grows it into a wide, scrolling strip with a Done
+button, picks what was tapped, and gives the range two handles to stretch and narrow it.
 
 Click a photo and it grows out of its card into the photo window: arrow keys or a swipe to turn
 the pages, Space for a slideshow, a heart and a comment box under it. Esc closes whatever is
@@ -88,8 +91,8 @@ tells React to render again.
 ## Run locally
 
 ```bash
-git clone https://github.com/murpiano/cloudpix-platform.git
-cd cloudpix-platform
+git clone https://github.com/murpiano/my-world.git
+cd my-world
 npm install
 
 npm run dev       # dev server, prints the local URL

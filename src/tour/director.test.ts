@@ -12,7 +12,7 @@ import type { AppState } from '@/state/app-state';
 import { createStore } from '@/state/store';
 import { albumTime } from '@/timeline/range';
 import { createDirector, DWELL_MIN_MS, placeFacts } from './director';
-import { APPEAR_MS, VANISH_MS } from './flight';
+import { APPEAR_MS, ESCAPE_MS, VANISH_MS } from './flight';
 
 const file = fileURLToPath(new URL('../../public/demo/photos.json', import.meta.url));
 const credits = JSON.parse(readFileSync(file, 'utf8')) as Credit[];
@@ -171,6 +171,13 @@ describe('the timeline', () => {
     expect(director.clickYear(2023)).toBe('open');
   });
 
+  it('keeps a picked year picked, instead of opening it, when told not to open', () => {
+    const { director, state } = setup();
+    director.clickYear(2023);
+    expect(director.clickYear(2023, false)).toBe('ok');
+    expect(state().range?.year).toBe(2023);
+  });
+
   it('refuses a year without albums', () => {
     const { director, state } = setup();
     expect(director.clickYear(2026)).toBe('empty');
@@ -325,5 +332,52 @@ describe('after the owner has changed the archive', () => {
     expect(director.showAlbumOnMap(made.id)).toBe(true);
     expect(store.get().focus).toBe(own.albums.findIndex((album) => album.id === made.id));
     expect(director.clickYear(2030)).toBe('ok');
+  });
+});
+
+describe('choosing a range while the plane is in the air', () => {
+  // Paris is first visited in 2019 ("First trip abroad"); 2023 holds other albums
+  const flyingToParis = () => {
+    const made = setup();
+    made.director.pickCity('paris');
+    made.run(APPEAR_MS + 400);
+    expect(made.state().flying).toBe(true);
+    return made;
+  };
+  const parisYear = () => archive.albums[indexOf('First trip abroad')]?.year ?? 0;
+
+  it('lets it fly on when the place it is heading for is inside the range', () => {
+    const { director, run, state } = flyingToParis();
+    expect(director.clickYear(parisYear())).toBe('ok');
+    run(200);
+    expect(state().flying).toBe(true);
+    expect(director.view().plane?.lift ?? 0).toBe(0);
+    run(LEG_MS);
+    expect(state().flying).toBe(false);
+    expect(director.view().focusCityKey).toBe('paris');
+  });
+
+  it('sends it into space when the place is outside the range, and the trail goes at once', () => {
+    const { director, run, state } = flyingToParis();
+    const other = parisYear() === 2023 ? 2021 : 2023;
+    expect(director.clickYear(other)).toBe('ok');
+    run(120);
+    const plane = director.view().plane;
+    expect(plane?.lift).toBeGreaterThan(0);
+    run(300);
+    expect(director.view().leg?.alpha ?? 0).toBeLessThan(0.2);
+    run(ESCAPE_MS);
+    expect(director.view().plane).toBeNull();
+    expect(director.view().leg).toBeNull();
+    expect(state().flying).toBe(false);
+    expect(state().focus).toBe(-1);
+    expect(state().range?.year).toBe(other);
+  });
+
+  it('does not treat a range with no flight in it as anything to do', () => {
+    const { director, state } = setup();
+    expect(director.clickYear(2023)).toBe('ok');
+    expect(state().flying).toBe(false);
+    expect(director.view().plane).toBeNull();
   });
 });

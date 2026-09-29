@@ -3,9 +3,12 @@ import { Z_MIN } from '@/geo/projection';
 import type { LonLat } from '@/geo/vector';
 import {
   APPEAR_MS,
+  beginEscape,
   cameraTurnMs,
   createFlight,
+  ESCAPE_MS,
   planeAlpha,
+  planeLift,
   riseZoom,
   stepFlight,
   VANISH_MS,
@@ -95,5 +98,56 @@ describe('riseZoom', () => {
     expect(riseZoom(1, far)).toBeGreaterThanOrEqual(Z_MIN);
     far.c = 1;
     expect(riseZoom(1, far)).toBeCloseTo(1);
+  });
+});
+
+describe('an escape into space', () => {
+  const cruising = () => {
+    const flight = createFlight({ from: KYIV, to: PARIS, rot: [-30, -50, 0] });
+    run(flight, APPEAR_MS + 3000);
+    return flight;
+  };
+
+  it('stops the plane where it is, lets go of the camera and starts to lift', () => {
+    const flight = cruising();
+    const at = flight.e;
+    beginEscape(flight);
+    expect(flight.phase).toBe('escape');
+    expect(flight.follow).toBe(false);
+    run(flight, ESCAPE_MS / 2);
+    expect(flight.e).toBe(at);
+    expect(planeLift(flight)).toBeGreaterThan(0);
+    expect(planeLift(flight)).toBeLessThan(1);
+  });
+
+  it('rises faster and faster, and dissolves before it is gone', () => {
+    const flight = cruising();
+    beginEscape(flight);
+    run(flight, ESCAPE_MS * 0.25);
+    const early = planeLift(flight);
+    expect(planeAlpha(flight)).toBe(1);
+    run(flight, ESCAPE_MS * 0.25);
+    const middle = planeLift(flight);
+    expect(middle - early).toBeGreaterThan(early);
+    run(flight, ESCAPE_MS * 0.4);
+    expect(planeAlpha(flight)).toBeLessThan(0.5);
+  });
+
+  it('is done after ESCAPE_MS, with nothing left of the plane', () => {
+    const flight = cruising();
+    beginEscape(flight);
+    run(flight, ESCAPE_MS + 50);
+    expect(flight.phase).toBe('done');
+    expect(planeAlpha(flight)).toBe(0);
+  });
+
+  it('does not lift an ordinary flight', () => {
+    expect(planeLift(cruising())).toBe(0);
+  });
+
+  it('leaves a camera-only turn alone: there is no plane to send away', () => {
+    const turn = createFlight({ from: null, to: PARIS, rot: [-30, -50, 0] });
+    beginEscape(turn);
+    expect(turn.phase).toBe('cruise');
   });
 });
