@@ -28,6 +28,9 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: /my-world/
+          # public values (Settings → Secrets and variables → Actions → Variables); empty keeps the app local
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_KEY: ${{ vars.SUPABASE_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

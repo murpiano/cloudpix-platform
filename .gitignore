@@ -9,4 +9,5 @@ coverage/
 .vscode/
 *.log
 .env*
+!.env.example
 .DS_Store

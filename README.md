@@ -80,10 +80,16 @@ and the projection each have their own unit tests.
 
 `Repository` (`src/data/repository.ts`) is the only way anything is stored. `demo-repository` is
 read-only and built from the bundled demo; `local-repository` keeps the graph in `localStorage`
-and the photo files in IndexedDB. Photos are resized in the browser to at most 1600 px on the
-long side, JPEG at quality 0.86, before they are kept. Whatever comes back out of storage goes
-through `cleanArchive` first, so a half-written or hand-edited entry cannot break the page. When
-a backend arrives, it implements the same interface and nothing above it changes.
+and the photo files in IndexedDB; `remote-repository` keeps them with a backend, the archive as one
+JSON document and the photos in a private bucket. Photos are resized in the browser to at most
+1600 px on the long side, JPEG at quality 0.86, before they are kept. Whatever comes back out of
+storage goes through `cleanArchive` first, so a half-written or hand-edited entry cannot break the
+page.
+
+The backend is optional and chosen when the app is built: with `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_KEY` set it uses a [Supabase](https://supabase.com) project for accounts and
+storage (loaded only then, as a separate chunk); without them everything stays in the browser. The
+setup, the database migration and its row level security are in [supabase/](supabase/README.md).
 
 ### Edits without a rebuild
 
@@ -130,9 +136,10 @@ Every pure module has its tests next to it; there are over 300 of them.
 
 ## Not there yet
 
-There is no server. Likes and comments are local stubs, the password is not stored or checked,
-and an owner's archive lives in one browser only — clear the site data and it is gone. A real
-API, real auth and durable photo storage are the next piece of work.
+Likes and comments are local stubs. Without a backend there is no server: the password is not
+stored or checked, and an owner's archive lives in one browser only, so clear the site data and it
+is gone. With one, deleting the account itself (not only its data) still needs a server-side
+function, and two devices saving at once keep the last save.
 
 ---
 

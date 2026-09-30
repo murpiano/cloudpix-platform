@@ -5,7 +5,9 @@ import { useStore } from '@/state/store';
 import { AboutForm } from './AboutForm';
 import { AccountForm } from './AccountForm';
 import { AlbumForm } from './AlbumForm';
+import { backend } from '@/backend/session';
 import { LoginForm } from './LoginForm';
+import { RemoteLoginForm } from './RemoteLoginForm';
 import { PhotoForm } from './PhotoForm';
 import { TripForm } from './TripForm';
 
@@ -17,7 +19,11 @@ export function Forms({ world }: { world: World }) {
   if (!form) return null;
   switch (form.kind) {
     case 'login':
-      return <LoginForm archive={world.archive} why={form.why} onClose={close} />;
+      return backend() ? (
+        <RemoteLoginForm archive={world.archive} why={form.why} onClose={close} />
+      ) : (
+        <LoginForm archive={world.archive} why={form.why} onClose={close} />
+      );
     case 'account':
       return <AccountForm archive={world.archive} onClose={close} />;
     case 'about':

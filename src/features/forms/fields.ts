@@ -45,3 +45,9 @@ export const accountProblem = (fields: {
   if (!fields.home) return 'Pick your home base from the list of cities.';
   return null;
 };
+
+/** What is wrong with a sign-in: only the pair is needed, and the service checks the password. */
+export const signInProblem = (email: string, password: string): string | null => {
+  if (!MAIL.test(email.trim())) return 'Enter an email like name@example.com.';
+  return password ? null : 'Enter your password.';
+};

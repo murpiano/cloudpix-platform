@@ -1,3 +1,4 @@
+import { backend } from '@/backend/session';
 import { Acts, Sheet } from './Sheet';
 
 const link = (href: string, text: string) => (
@@ -40,18 +41,20 @@ export function AboutForm({ onClose }: { onClose: () => void }) {
         <section>
           <h4>Privacy and cookies</h4>
           <p>
-            No cookies, no analytics, no ads, no tracking. There is no server: what you add while
-            logged in — your name, trips, albums and photos — stays in this browser only, in local
-            storage, and never leaves your device. You can download a backup of it in the account
-            settings. The fonts are served from this site itself, so no other company sees your visit.
+            {backend()
+              ? 'No ads and no tracking. When you make an account, your email, your name, your trips, albums and photos are kept with the service that runs the accounts (Supabase), closed to everyone but you. Nothing else is collected. The only thing stored in your browser is the sign-in itself.'
+              : 'No cookies, no analytics, no ads, no tracking. There is no server: what you add while logged in — your name, trips, albums and photos — stays in this browser only, in local storage, and never leaves your device. You can download a backup of it in the account settings.'}{' '}
+            The fonts are served from this site itself, so no other company sees your visit.
           </p>
         </section>
         <section>
           <h4>Terms</h4>
           <p>
             My World is a personal project, offered as it is, without any warranty. Likes and
-            comments are demo stubs. Clearing the site data deletes your archive, so keep your own
-            copies of the photos.
+            comments are demo stubs.{' '}
+            {backend()
+              ? 'Your archive is kept with your account, but download a backup now and then, and keep your own copies of the photos.'
+              : 'Clearing the site data deletes your archive, so keep your own copies of the photos.'}
           </p>
         </section>
       </div>

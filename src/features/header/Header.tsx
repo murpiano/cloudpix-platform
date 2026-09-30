@@ -9,7 +9,8 @@ import { ownerStore } from '@/state/owner';
 import { SETTING_LIMITS, settingsStore } from '@/state/settings';
 import type { Settings } from '@/state/settings';
 import { useStore } from '@/state/store';
-import { logOut, userStore } from '@/state/user';
+import { signOutAccount } from '@/backend/account';
+import { userStore } from '@/state/user';
 import { albumTime } from '@/timeline/range';
 import { HouseIcon } from './HouseIcon';
 import './header.scss';
@@ -73,7 +74,10 @@ export function Header({ world }: { world: World | null }) {
         </div>
       )}
 
-      <nav className={`header__menu header__nav${menu === 'nav' ? ' is-on' : ''}`} inert={menu !== 'nav'}>
+      <nav
+        className={`header__menu header__nav${menu === 'nav' ? ' is-on' : ''}`}
+        inert={menu !== 'nav'}
+      >
         <NavMenu world={world} />
       </nav>
 
@@ -127,14 +131,7 @@ function NavMenu({ world }: { world: World | null }) {
       </button>
       <hr />
       <AboutItem />
-      <button
-        type="button"
-        className="header__item"
-        onClick={() => {
-          logOut();
-          location.reload();
-        }}
-      >
+      <button type="button" className="header__item" onClick={() => void signOutAccount()}>
         <span>Log out</span>
       </button>
     </>

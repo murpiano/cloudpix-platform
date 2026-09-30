@@ -14,7 +14,8 @@ export interface Repository {
   /** Can the owner change what is in it? */
   readonly editable: boolean;
   load(): Promise<ArchiveData>;
-  save(data: ArchiveData): void;
+  /** Keeps the graph. Throws (or rejects) when it could not be kept: the caller tells the owner. */
+  save(data: ArchiveData): void | Promise<void>;
   addPhoto(blob: Blob, name: string): Promise<PhotoRef>;
   dropPhotos(refs: PhotoRef[]): Promise<void>;
   /** The file of one of the owner's photos, for a backup; null when it is gone. */

@@ -5,7 +5,7 @@ import { createStore } from './store';
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
-const cleanPlace = (raw: unknown): Place | null => {
+export const cleanPlace = (raw: unknown): Place | null => {
   if (!isObject(raw)) return null;
   const { name, country, countryId, lat, lon } = raw;
   if (typeof name !== 'string' || typeof country !== 'string' || typeof countryId !== 'string') {

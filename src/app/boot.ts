@@ -1,8 +1,10 @@
 import { linkArchive } from '@/data/archive';
 import type { Archive } from '@/data/archive';
 import { DEMO_HOME } from '@/data/demo';
+import { startBackend } from '@/backend/session';
 import { demoRepository } from '@/data/demo-repository';
 import { localRepository } from '@/data/local-repository';
+import { remoteRepository } from '@/data/remote-repository';
 import type { Credit, Place } from '@/data/types';
 import { earthFromTopology } from '@/geo/world';
 import type { EarthGeo, WorldTopology } from '@/geo/world';
@@ -39,9 +41,22 @@ export const loadWorld = async (): Promise<World> => {
     fetchJson<LightRow[]>('lights.json'),
   ]);
   const earth = earthFromTopology(topology);
+  // with a backend the account is whoever the backend says is signed in; without one, the browser
+  const back = await startBackend().catch(() => null);
+  const account = back ? await back.auth.session().catch(() => null) : null;
+  if (back) {
+    userStore.set({
+      user: account ? { name: account.name, email: account.email, home: account.home } : null,
+    });
+  }
   const { user } = userStore.get();
   // logged out it is the demo traveller, read-only; logged in it is the owner's own archive
-  const repo = user ? localRepository(credits) : demoRepository(credits);
+  const repo =
+    back && account
+      ? remoteRepository(back.storage(account.id), credits)
+      : user && !back
+        ? localRepository(credits)
+        : demoRepository(credits);
   const archive = linkArchive(await repo.load());
   setSource(archive, repo);
   return {

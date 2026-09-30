@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { accountProblem, dateInput, parseDate, placeLabel, samePlace } from './fields';
+import {
+  accountProblem,
+  signInProblem,
+  dateInput,
+  parseDate,
+  placeLabel,
+  samePlace,
+} from './fields';
 
 const PARIS = { name: 'Paris', country: 'France', countryId: '250', lat: 48.86, lon: 2.35 };
 
@@ -49,5 +56,13 @@ describe('accountProblem', () => {
     expect(
       accountProblem({ ...good, password: 'secret1', again: 'secret2', passwordOptional: true }),
     ).toMatch(/do not match/);
+  });
+});
+
+describe('signInProblem', () => {
+  it('needs an email that looks like one, and a password of any kind', () => {
+    expect(signInProblem('ann@example.com', 'x')).toBeNull();
+    expect(signInProblem('ann', 'x')).toMatch(/email/);
+    expect(signInProblem('ann@example.com', '')).toMatch(/password/);
   });
 });

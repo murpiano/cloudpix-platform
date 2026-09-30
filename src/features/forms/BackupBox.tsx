@@ -3,6 +3,7 @@ import type { Archive } from '@/data/archive';
 import { makeBackup, readBackup } from '@/data/backup';
 import type { Backup } from '@/data/backup';
 import { plural } from '@/archive/pages';
+import { backend } from '@/backend/session';
 import { repository } from '@/state/owner';
 
 const stamp = () => new Date().toISOString().slice(0, 10);
@@ -70,8 +71,9 @@ export function BackupBox({ archive }: { archive: Archive }) {
     <div className="sheet__backup">
       <h4>Backup</h4>
       <p className="sheet__note">
-        Your archive is kept in this browser only. Download a copy now and then, or to move it to
-        another browser or computer.
+        {backend()
+          ? 'Your archive is kept with your account. Download a copy now and then for yourself.'
+          : 'Your archive is kept in this browser only. Download a copy now and then, or to move it to another browser or computer.'}
       </p>
       {pending ? (
         <div className="sheet__acts">

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Archive } from '@/data/archive';
 import type { PickedPlace } from '@/data/places';
+import { friendlyError } from '@/backend/account';
+import { backend } from '@/backend/session';
 import { repository } from '@/state/owner';
 import { saveAccount, userStore } from '@/state/user';
 import { BackupBox } from './BackupBox';
@@ -17,6 +19,8 @@ export function AccountForm({ archive, onClose }: { archive: Archive; onClose: (
   const [pass, setPass] = useState('');
   const [again, setAgain] = useState('');
   const [home, setHome] = useState<PickedPlace | null>(user?.home ?? null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (!user) return null;
 
   const problem = accountProblem({
@@ -27,14 +31,28 @@ export function AccountForm({ archive, onClose }: { archive: Archive; onClose: (
     home,
     passwordOptional: true,
   });
-  const submit = () => {
-    if (problem || !home) return;
+  const submit = async () => {
+    if (problem || !home || busy) return;
     const { name: city, country, countryId, lat, lon } = home;
-    saveAccount({
+    const fields = {
       name: name.trim(),
       email: email.trim(),
       home: { name: city, country, countryId, lat, lon },
-    });
+    };
+    const auth = backend()?.auth;
+    if (auth) {
+      setBusy(true);
+      setError(null);
+      try {
+        await auth.update({ ...fields, ...(pass ? { password: pass } : {}) });
+      } catch (failure) {
+        setBusy(false);
+        setError(friendlyError(failure instanceof Error ? failure.message : String(failure)));
+        return;
+      }
+    } else {
+      saveAccount(fields);
+    }
     onClose();
     // the home base moves the house on the globe and every flight that starts from it
     location.reload();
@@ -105,13 +123,19 @@ export function AccountForm({ archive, onClose }: { archive: Archive; onClose: (
         <button
           type="button"
           className="sheet__btn is-main"
-          disabled={problem !== null}
-          onClick={submit}
+          disabled={problem !== null || busy}
+          onClick={() => void submit()}
         >
           Save
         </button>
       </Acts>
-      <p className="sheet__note">{problem ?? 'The password is not stored anywhere yet.'}</p>
+      <p className="sheet__note">
+        {error ??
+          problem ??
+          (backend()
+            ? 'Changing the email sends a link to confirm it.'
+            : 'The password is not stored anywhere yet.')}
+      </p>
     </Sheet>
   );
 }

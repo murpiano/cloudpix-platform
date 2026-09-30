@@ -3,7 +3,8 @@ import type { ArchiveData } from '@/data/types';
 import type { Repository } from '@/data/repository';
 import { editArchive } from '@/state/owner';
 
-const TROUBLE = 'That change could not be kept. Your browser may be out of room.';
+const TROUBLE =
+  'That change could not be kept. Check the connection and the free room, then try again.';
 
 /**
  * Runs an edit and closes the sheet when it lands. When storage says no, the sheet stays open
