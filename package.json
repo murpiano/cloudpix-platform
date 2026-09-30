@@ -1,6 +1,6 @@
 {
   "name": "my-world",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "A personal travel archive on a night globe: places, albums, and a plane that flies the trips in order.",
@@ -45,6 +45,8 @@
     "vitest": "^5.0.2"
   },
   "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
     "d3-geo": "^3.1.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

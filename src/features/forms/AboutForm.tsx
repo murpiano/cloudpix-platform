@@ -43,8 +43,7 @@ export function AboutForm({ onClose }: { onClose: () => void }) {
             No cookies, no analytics, no ads, no tracking. There is no server: what you add while
             logged in — your name, trips, albums and photos — stays in this browser only, in local
             storage, and never leaves your device. You can download a backup of it in the account
-            settings. The fonts are loaded from Google Fonts, so Google sees your IP address when it
-            serves them.
+            settings. The fonts are served from this site itself, so no other company sees your visit.
           </p>
         </section>
         <section>
