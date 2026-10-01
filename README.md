@@ -1,3 +1,5 @@
+![My World](docs/screenshot.png)
+
 # My World
 
 _Memories of the places I've been._
